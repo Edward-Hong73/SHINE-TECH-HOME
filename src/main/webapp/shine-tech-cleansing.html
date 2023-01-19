@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>클린싱</title>
+    <link rel="stylesheet" href="css/intro.css">
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+    
+    <style>
+      .order_gallery {
+        display: inline-block;
+        align-items: center;
+        width: 980px;
+        height: 99%;
+        
+      
+      }
+
+      img {
+        display: block;
+        /* justify-content: center; */
+        /* text-align: center; */
+        width: 450px;
+        height: 250px;
+        margin: 0 auto;
+      }
+
+      .div-button {
+        display: flex;
+        float: center;
+      	/*width: 300px; */
+        margin: 50px auto;
+      }
+
+
+      button {
+        display: inline-block;
+        margin: 0 auto;
+      }
+
+      .controlgroup {
+        margin: 40px auto;
+     	  line-height: 30px;
+      }
+
+      h3 {
+        font-size:1.0em;
+        font-weight: bold;
+        color: white;
+        margin: 10px auto;
+        background-color: darkblue;
+        height: 25px;
+        width: 300px;
+        text-align: center;
+        border-radius:20px;
+      }
+
+      
+      
+    </style>
+    <script>
+      $( function() {
+        $( "#cleansing-shape" ).selectmenu();
+        $( "#cleansing-color" ).selectmenu();
+      } );
+    </script>
+
+  </head>
+
+  
+
+  <body>
+    <aside class="header">
+    <h1>SHINE-TECH HOME</h1>
+    </aside>
+    <ul class="ul_header">
+      <li class="box"><a href="login-post.html">로그인 및 회원가입</a></li>
+      <li class="box"><a href="shine-tech-cleansing.html">클린싱 주문 및 견적</a></li>
+      <li class="box"><a href="shine-tech-roller.html">롤러 주문 및 견적</a></li>
+      <li class="box"><a href="story-company.html">주문 취소 요청</a></li>
+      <li class="box"><a href="story-developer.html">생산 현황 및 납기 조회</a></li>
+      <li class="box"><a href="story-hobby.html">고객 센터</a></li>
+    </ul>
+    <div class="order_gallery">
+      <img src="images/PVA-cleansing.jpg" alt="사진1">
+      <h3>클린싱 스펀지 주문 및 견적 요청하기</h3>
+      <form action="cleansing-order">
+	      <table class="controlgroup">
+	        <tr>
+	          <td><label for="cleansing-shape">- 모양 선택(shape)</label></td>
+	          <td> : 
+	            <select name="shape" id="cleansing-shape">
+	              <option value="elliptical" selected="selected">타원형(elliptical)</option>
+	              <option value="rounded">원형(rounded)</option>
+	              <option value="etc">기타(etc)</option>
+	            </select>
+	          </td>
+	        </tr>
+	      
+	        <tr>
+	          <td><label for="cleansing-color">- 색상 선택(color)</label></td>
+	          <td> : 
+	            <select name="color" id="cleansing-color">
+	              <option value="pink" selected="selected">핑크(pink)</option>
+	              <option value="white">백색(white)</option>
+	              <option value="purple">보라(purple)</option>
+	              <option value="yellow">노랑(yellow)</option>
+	              <option value="blue">파랑(blue)</option>
+	              <option value="skyblue">하늘색(skyblue)</option>
+	              <option value="beige">베이지(beige)</option>
+	              <option value="etc">기타(etc)</option>
+	            </select>
+	          </td>
+	        </tr>
+	      
+	        <tr>
+	          <td><label for="cleansing-thickness">- 두께 선택(thickness)</label></td>
+	          <td> : 
+	            <select name="thickness" id="cleansing-thickness">
+	              <option selected="selected">8</option>
+	              <option>9</option>
+	              <option>10</option>
+	              <option>11</option>
+	              <option selected="selected">12</option>
+	              <option>13</option>
+	              <option>14</option>
+	              <option>15</option>
+	              <option>16</option>
+	              <option>20</option>
+	              <option>25</option>
+	              <option value="etc">기타</option>
+	            </select>
+	            <label for="cleansing-thickness">T(mm)</label>
+	          </td>
+	        </tr>
+	        <tr>  
+	          <td><label for="cleansing-quantity">- 수량 입력(quantity)</label></td>
+	          <td> : 
+	            <input type="text" name="quantity" id="cleansing-quantity" autofocus placeholder="숫자만 입력하세요">
+	            <label for="cleansing-quantity">개(ea)</label>
+	          </td>
+	        </tr>
+	
+	        <tr>
+	          <td><label for="cleansing-packing">- 포장지 선택(packing)</label></td>
+	          <td> : 
+	            <select name="packing" id="cleansing-packing">
+	              <option value="nopattern" selected="selected">무지(no-pattern)</option>
+	              <option value="cstmpattern">귀사 전용(client-pattern)</option>
+	              <option value="bundle">비포장(bundle)</option>
+	              <option value="etc">기타(etc)</option>
+	            </select>
+	          </td>
+	        </tr>
+	        
+	        <tr>
+	          <td><label for="cleansing-delivery">- 물류비 선택(Delivery Choice)</label></td>
+	          <td> : 
+	            <select name="delivery" id="cleansing-delivery">
+	              <option value="cstmdelivery" selected="selected">샤인테크는 걱정하지 마세요. 당사가 부담하겠습니다.</option>
+	              <option value="shdelivery">샤인테크에서 부담해 주시고, 물품대금에 추가해 주세요.</option>
+	              <option value="visitdelivery">직접 방문 수령하겠습니다.</option>
+	              <option value="etc">기타(etc)</option>
+	            </select>
+	          </td>
+	        </tr>
+	        <!--
+	        <tr>
+		        <td><label for="cleansing-choice">- 요청 선택(request choice)</label></td>
+		        <td> : 
+			        <input type="radio" name="clns_choice" value="invoice">견적 요청 먼저 하겠습니다.
+					<input type="radio" name="clns_choice value=" checked="checked">CSS
+				</td>
+	        </tr>
+	        -->
+	      </table>
+    
+	      <div class="div-button">
+	        <button type='submit' formaction='#'>먼저 견적부터 받아보고 싶습니다.</button>
+	        <button type='submit' formaction='cleansing-order' name="command" value="insertCleansingOrder">견적은 이미 알고 있으니 바로 주문합니다.</button>
+	      </div>
+      </form>
+    </div>
+  </body>
+</html>

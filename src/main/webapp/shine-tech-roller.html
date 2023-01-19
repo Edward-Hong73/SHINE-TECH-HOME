@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>롤러</title>
+    <link rel="stylesheet" href="css/intro.css">
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+    
+    <style>
+      .order_gallery {
+        display: inline-block;
+        align-items: center;
+        width: 980px;
+        height: 99%;
+        
+      
+      }
+
+      img {
+        display: block;
+        /* justify-content: center; */
+        /* text-align: center; */
+        width: 450px;
+        height: 250px;
+        margin: 0 auto;
+      }
+      
+      .div-button {
+        display: flex;
+        float: center;
+      	width: 300px;
+        margin: 50px auto;
+      }
+
+      button {
+        display: inline-block;
+        margin: 0 auto;
+      }
+
+      .controlgroup {
+        margin: 40px auto;
+     	  line-height: 30px;
+      }
+
+      h3 {
+        font-size:1.0em;
+        font-weight: bold;
+        color: white;
+        margin: 10px auto;
+        background-color: darkblue;
+        height: 25px;
+        width: 300px;
+        text-align: center;
+        border-radius:20px;
+      }
+
+      
+      
+    </style>
+    <script>
+      $( function() {
+        $( "#cleansing-shape" ).selectmenu();
+        $( "#cleansing-color" ).selectmenu();
+      } );
+    </script>
+
+  </head>
+
+  
+
+  <body>
+    <aside class="header">
+    <h1>SHINE-TECH HOME</h1>
+    </aside>
+    <ul class="ul_header">
+      <li class="box"><a href="who-am-i.html">그는 누구인가?</a></li>
+      <li class="box"><a href="job.html">뭘하며 먹고사나?</a></li>
+      <li class="box"><a href="story-family.html">가족 이야기</a></li>
+      <li class="box"><a href="story-company.html">회사 이야기</a></li>
+      <li class="box"><a href="story-developer.html">개발자 이야기</a></li>
+      <li class="box"><a href="story-hobby.html">잡다한 취미 생활</a></li>
+    </ul>
+    <div class="order_gallery">
+      <img src="images/PVA-roller-twice.jpg" alt="사진2">
+      <h3>PVA 스펀지롤러 주문 및 견적 요청하기</h3>
+      <table class="controlgroup">
+        <tr>
+          <td><label for="outter-radius">- 외경(outter radius)</label></td>
+          <td> : 
+            <select name="outter-radius" id="outter-radius">
+              <option>20</option>
+              <option>25</option>
+              <option>32</option>
+              <option selected="selected">40</option>
+              <option>45</option>
+              <option>50</option>
+              <option>55</option>
+              <option>60</option>
+              <option>65</option>
+              <option>77</option>
+              <option>83</option>
+              <option>100</option>
+              <option>105</option>
+              <option>기타(etc)</option>
+            </select>파이(Ø)
+          </td>
+        </tr>
+      
+        <tr>
+          <td><label for="inner-radius">- 내경(inner-radius)</label></td>
+          <td> : 
+            <select name="inner-radius" id="inner-radius">
+              <option selected="selected">8(hole)</option>
+              <option>10(hole)</option>
+              <option>10(pipe)</option>
+              <option>13</option>
+              <option>16</option>
+              <option>20</option>
+              <option>25</option>
+              <option>40</option>
+              <option>기타(etc)</option>
+            </select>파이(Ø)
+          </td>
+        </tr>
+      
+        <tr>
+          <td><label for="length-sponge">- 스펀지 길이(length-sponge)</label></td>
+          <td> : 
+            <input type="number" id="length-sponge" autofocus placeholder="숫자만 입력하세요">mm
+          </td>
+        </tr>
+        <tr>  
+          <td><label for="length-pipe">- 파이프 길이(length-pipe)</label></td>
+          <td> : 
+            <input type="number" id="length-pipe" autofocus placeholder="숫자만 입력하세요">mm
+          </td>
+        </tr>
+        <tr> 
+          <td><label for="roller-quantity">- 수량 입력(quantity)</label></td>
+          <td> : 
+            <input type="number" id="roller-quantity" autofocus placeholder="숫자만 입력하세요">개(ea)
+          </td>
+        </tr>
+        <tr>
+          <td><label for="style-spongecut">- 스펀지 커팅 형태(style-spongecut)</label></td>
+          <td> : 
+            <select name="style-spongecut" id="style-spongecut">
+              <option selected="selected">양쪽 모두(both-side)</option>
+              <option>한쪽만(one-side)</option>
+            </select>
+          </td>
+        </tr>
+        <tr> 
+          <td><label for="roller-holecutting">- 홀 가공(hole-cutting)</label></td>
+          <td> : 
+            <input type="number" id="roller-quantity" autofocus placeholder="숫자만 입력하세요">파이(Ø)
+          </td>
+        </tr>
+        <tr>
+          <td><label for="cleansing-packing">- 포장 선택(packing)</label></td>
+          <td> : 
+            <select name="cleansing-packing" id="cleansing-packing">
+              <option selected="selected">개별2중포장(each-overwrap)</option>
+              <option>비포장(bundle)</option>
+              <option>기타(etc)</option>
+            </select>
+          </td>
+        </tr>
+      </table> 
+      <div class="div-button">
+        <button>
+          견적 요청
+        </button>
+        <button>
+          주문하기
+        </button>
+      </div>
+    </div>
+  </body>
+</html>
