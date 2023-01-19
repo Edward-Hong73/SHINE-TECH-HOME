@@ -1,0 +1,5 @@
+이클립스 내 작업 위치 D:\Workspace\Servers\workspace\.metadata\.plugins\org.eclipse.wst.server.core\tmp0\wtpwebapps\HelloWeb\intro
+톰캣으로 export 하는 위치 D:\Tomcat\apache-tomcat-8.5.84\webapps
+
+이클립스 java 버전은 웹 개발 불가
+이클립스 jee 버전은 웹 개발 가능
