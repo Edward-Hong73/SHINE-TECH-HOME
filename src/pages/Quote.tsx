@@ -26,10 +26,20 @@ import { supabase } from '../lib/supabase';
 
 export default function Quote() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const [isLoading, setIsLoading] = useState(true);
+  const { user, isLoggedIn, isLoading } = useAuth();
+  const [isCompanyLoading, setIsCompanyLoading] = useState(true);
   const [companyCategory, setCompanyCategory] = useState<'롤러' | '클린싱'>('롤러');
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleOrderClick = () => {
+    if (isLoggedIn) {
+      setIsModalOpen(true);
+    } else {
+      alert('주문 기능은 회원만 이용 가능합니다. 로그인해 주세요!');
+      navigate('/login');
+    }
+  };
+
   
   const [industrialSettings, setIndustrialSettings] = useState({
     outerDiameter: '32',
@@ -180,7 +190,7 @@ export default function Quote() {
   const fetchCompanyInfo = async (bizNum: string) => {
     if (!bizNum || bizNum === 'DEMO') return;
     
-    setIsLoading(true);
+    setIsCompanyLoading(true);
     const { data, error } = await supabase
       .from('companies_shine')
       .select('main_category')
@@ -191,24 +201,37 @@ export default function Quote() {
       setCompanyCategory(data.main_category as any);
     }
     
-    setIsLoading(false);
+    setIsCompanyLoading(false);
   };
 
   const fetchPastOrders = async (bizNum: string) => {
+    // 공백 제거 및 유효성 검사 강화
+    const cleanBizNum = bizNum?.trim();
     console.log('--- Fetching Orders Started ---');
-    console.log('Business Number Filter:', bizNum);
+    console.log('Original BizNum:', bizNum);
+    console.log('Cleaned BizNum for Filter:', cleanBizNum);
 
-    if (!bizNum || bizNum === 'undefined' || bizNum === 'null') {
+    if (!cleanBizNum || cleanBizNum === 'undefined' || cleanBizNum === 'null' || cleanBizNum === '') {
       console.warn('Invalid business number provided for filtering');
       setPastOrders([]);
       return;
     }
 
+    // [진단용] 모든 최근 주문 5건을 가져와서 사업자 번호 형식 확인
+    const { data: debugData } = await supabase.from('order_roller_shine').select('business_number').limit(5).order('created_at', { ascending: false });
+    console.log('--- DB Diagnostic Log (Recent 5 Orders) ---');
+    debugData?.forEach((d, i) => console.log(`Order ${i+1} BizNum in DB: "${d.business_number}"`));
+
     const [rollerResult, cleansingResult] = await Promise.all([
-      supabase.from('order_roller_shine').select('*').eq('business_number', bizNum).not('business_number', 'is', null),
-      supabase.from('order_cleansing_shine').select('*').eq('business_number', bizNum).not('business_number', 'is', null)
+      supabase.from('order_roller_shine')
+        .select('*')
+        .or(`business_number.eq.${cleanBizNum},business_number.eq.${cleanBizNum.replace(/-/g, '')},business_number.ilike.%${cleanBizNum.replace(/-/g, '')}%`),
+      supabase.from('order_cleansing_shine')
+        .select('*')
+        .or(`business_number.eq.${cleanBizNum},business_number.eq.${cleanBizNum.replace(/-/g, '')},business_number.ilike.%${cleanBizNum.replace(/-/g, '')}%`)
     ]);
 
+    console.log('Search Condition:', `business_number.eq.${cleanBizNum},business_number.eq.${cleanBizNum.replace(/-/g, '')}, ilike pattern`);
     console.log('Roller Result Count:', rollerResult.data?.length || 0);
     console.log('Cleansing Result Count:', cleansingResult.data?.length || 0);
 
@@ -264,7 +287,7 @@ export default function Quote() {
         <div className="space-y-8">
           {/* Top: Category-based Order Form */}
           <div className="w-full">
-            {isLoading ? (
+            {isCompanyLoading ? (
               <div className="bg-white rounded-3xl p-12 shadow-md border border-slate-100 flex flex-col items-center justify-center space-y-4">
                 <RefreshCw className="w-8 h-8 text-brand-500 animate-spin" />
                 <p className="text-sm text-slate-400 font-bold">정보를 불러오는 중...</p>
@@ -458,7 +481,7 @@ export default function Quote() {
                     견적 문의
                   </button>
                   <button 
-                    onClick={() => setIsModalOpen(true)}
+                    onClick={handleOrderClick}
                     className="py-4 bg-brand-600 text-white font-bold rounded-2xl hover:bg-brand-700 transition-all shadow-lg shadow-brand-500/20 flex items-center justify-center space-x-2 group text-sm"
                   >
                     <ShoppingCart className="w-5 h-5" />
@@ -604,7 +627,7 @@ export default function Quote() {
                     견적 문의
                   </button>
                   <button 
-                    onClick={() => setIsModalOpen(true)}
+                    onClick={handleOrderClick}
                     className="py-4 bg-pink-600 text-white font-bold rounded-2xl hover:bg-pink-700 transition-all shadow-lg shadow-pink-500/20 flex items-center justify-center space-x-2 group text-sm"
                   >
                     <ShoppingCart className="w-5 h-5" />

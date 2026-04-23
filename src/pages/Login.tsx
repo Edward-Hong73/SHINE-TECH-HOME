@@ -40,6 +40,7 @@ export default function Login() {
 
       // 로그인 성공 처리
       login({
+        id: data.id,
         name: data.name,
         email: data.email,
         company: data.company_name,

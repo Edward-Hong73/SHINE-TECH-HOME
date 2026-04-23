@@ -23,180 +23,232 @@ import { useNavigate } from 'react-router-dom';
 const STATUS_STEPS = ['주문 요청', '주문접수', '생산', '후처리', '출하 대기', '출하 완료'];
 
 export default function Admin() {
-  const { user, isLoggedIn, logout } = useAuth();
+  const { user, isLoggedIn, isLoading, logout } = useAuth();
   const navigate = useNavigate();
   const [orders, setOrders] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isOrdersLoading, setIsOrdersLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [filterCategory, setFilterCategory] = useState<'all' | '롤러' | '클린싱'>('all');
 
   useEffect(() => {
-    // 1. 유저 정보가 아직 로딩 중이면 기다립니다.
-    if (isLoggedIn && !user) return;
+    if (isLoading) return;
 
-    // 2. 관리자 권한 확인 (회사 이름 또는 대표님 사업자 번호)
-    const isAdmin = user?.company === '샤인테크' || user?.businessNumber === '108-12-67235';
+    const isAdmin = user?.role === 'admin' || user?.company === '샤인테크' || user?.businessNumber === '108-12-67235';
 
     if (!isLoggedIn || !isAdmin) {
-      alert('관리자 권한이 없습니다. 샤인테크 직원만 접근 가능합니다.');
+      alert('관리자 권한이 없습니다.');
       navigate('/');
     } else {
       fetchOrders();
     }
-  }, [isLoggedIn, user, navigate]);
+  }, [isLoggedIn, user, isLoading, navigate]);
 
   const fetchOrders = async () => {
-    setIsLoading(true);
-    const { data, error } = await supabase
-      .from('order_roller_shine')
-      .select('*')
-      .order('created_at', { ascending: false });
+    setIsOrdersLoading(true);
+    const [rollerResult, cleansingResult] = await Promise.all([
+      supabase.from('order_roller_shine').select('*').order('created_at', { ascending: false }),
+      supabase.from('order_cleansing_shine').select('*').order('created_at', { ascending: false })
+    ]);
 
-    if (error) {
-      console.error('Fetch error:', error);
+    if (rollerResult.error || cleansingResult.error) {
       alert('주문 목록을 불러오는 중 오류가 발생했습니다.');
     } else {
-      setOrders(data || []);
+      const rollerOrders = (rollerResult.data || []).map(o => ({ ...o, product_category: '롤러' }));
+      const cleansingOrders = (cleansingResult.data || []).map(o => ({ ...o, product_category: '클린싱' }));
+      const allOrders = [...rollerOrders, ...cleansingOrders].sort((a, b) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+      setOrders(allOrders);
     }
-    setIsLoading(false);
+    setIsOrdersLoading(false);
   };
 
-  const updateStatus = async (orderId: number, newStatus: string) => {
-    const { error } = await supabase
-      .from('order_roller_shine')
-      .update({ status: newStatus })
-      .eq('id', orderId);
+  const updateStatus = async (orderId: number, newStatus: string, category: string) => {
+    const tableName = category === '롤러' ? 'order_roller_shine' : 'order_cleansing_shine';
+    const { error } = await supabase.from(tableName).update({ status: newStatus }).eq('id', orderId);
 
     if (error) {
-      alert('상태 업데이트 중 오류가 발생했습니다. (DB에 status 컬럼이 있는지 확인이 필요합니다)');
+      alert('상태 업데이트 중 오류가 발생했습니다.');
     } else {
-      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+      setOrders(prev => prev.map(o => o.id === orderId && o.product_category === category ? { ...o, status: newStatus } : o));
     }
   };
 
-  const filteredOrders = orders.filter(order => 
-    order.company_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    order.orderer_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    order.business_number?.includes(searchQuery) ||
-    order.id.toString().includes(searchQuery)
-  );
+  const filteredOrders = orders.filter(order => {
+    const matchesSearch = 
+      order.company_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      order.orderer_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      order.id.toString().includes(searchQuery);
+    
+    const matchesCategory = filterCategory === 'all' || order.product_category === filterCategory;
+    
+    return matchesSearch && matchesCategory;
+  });
+
+  const stats = {
+    total: orders.length,
+    roller: orders.filter(o => o.product_category === '롤러').length,
+    cleansing: orders.filter(o => o.product_category === '클린싱').length
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 pt-24 pb-12">
       <div className="max-w-7xl mx-auto px-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-6">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 flex items-center">
-              <ClipboardList className="w-8 h-8 mr-3 text-brand-600" />
-              주문 관제 대시보드 (관리자)
-            </h1>
-            <p className="text-slate-500 mt-1 text-sm">전체 파트너사의 주문 현황 및 공정 단계를 관리합니다.</p>
+            <div className="flex items-center space-x-3 mb-2">
+              <div className="bg-brand-600 p-2 rounded-xl">
+                <ClipboardList className="w-6 h-6 text-white" />
+              </div>
+              <h1 className="text-2xl font-black text-slate-900 tracking-tight">통합 주문 관제</h1>
+            </div>
+            <p className="text-slate-500 text-sm font-medium">샤인테크의 모든 공급 품목(롤러/클린싱)을 통합 관리합니다.</p>
           </div>
-          
+
+          <div className="flex flex-wrap items-center gap-3 bg-white p-1.5 rounded-2xl shadow-sm border border-slate-200">
+            {[
+              { id: 'all', label: '전체', count: stats.total, color: 'bg-slate-900' },
+              { id: '롤러', label: '롤러', count: stats.roller, color: 'bg-blue-600' },
+              { id: '클린싱', label: '클린싱', count: stats.cleansing, color: 'bg-pink-600' }
+            ].map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setFilterCategory(cat.id as any)}
+                className={cn(
+                  "flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-bold transition-all",
+                  filterCategory === cat.id 
+                    ? `${cat.color} text-white shadow-lg`
+                    : "text-slate-500 hover:bg-slate-50"
+                )}
+              >
+                <span>{cat.label}</span>
+                <span className={cn(
+                  "px-1.5 py-0.5 rounded-md text-[10px]",
+                  filterCategory === cat.id ? "bg-white/20" : "bg-slate-100 text-slate-400"
+                )}>{cat.count}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Search & Action Bar */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+          <div className="flex flex-1 items-center space-x-3">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input 
+                type="text" 
+                placeholder="업체명, 주문자, ID 검색..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-brand-500/20 outline-none shadow-sm"
+              />
+            </div>
+            <button 
+              onClick={fetchOrders}
+              className="p-3 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 transition-colors shadow-sm"
+              title="새로고침"
+            >
+              <RefreshCw className={cn("w-5 h-5 text-slate-500", isOrdersLoading && "animate-spin")} />
+            </button>
+          </div>
+
           <div className="flex items-center space-x-3">
-             <div className="relative">
-               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-               <input 
-                 type="text" 
-                 placeholder="업체명, 주문자, ID 검색..."
-                 value={searchQuery}
-                 onChange={(e) => setSearchQuery(e.target.value)}
-                 className="pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500/20 outline-none w-64"
-               />
-             </div>
-             <button 
-               onClick={fetchOrders}
-               className="p-2 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors"
-               title="새로고침"
-             >
-               <RefreshCw className={cn("w-4 h-4 text-slate-500", isLoading && "animate-spin")} />
-             </button>
-             <div className="relative">
-               <button 
-                 onClick={() => setIsProfileOpen(!isProfileOpen)}
-                 className="p-2 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors"
-                 title="관리자 설정"
-               >
-                 <Settings className="w-4 h-4 text-slate-500" />
-               </button>
+            <div className="relative">
+              <button 
+                onClick={() => setIsProfileOpen(!isProfileOpen)}
+                className="flex items-center space-x-2 px-4 py-3 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 transition-colors shadow-sm"
+              >
+                <div className="w-6 h-6 bg-slate-100 rounded-full flex items-center justify-center">
+                  <User className="w-3.5 h-3.5 text-slate-500" />
+                </div>
+                <span className="text-xs font-bold text-slate-700">{user?.name} 관리자</span>
+                <Settings className="w-4 h-4 text-slate-400" />
+              </button>
 
-               <AnimatePresence>
-                 {isProfileOpen && (
-                   <motion.div 
-                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                     className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden z-[100] text-left"
-                   >
-                     <div className="p-4 border-b border-slate-50 bg-slate-50/50">
-                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">관리자 세션</p>
-                       <div className="space-y-2">
-                         <div className="flex items-center space-x-2 text-slate-600">
-                           <User className="w-3.5 h-3.5" />
-                           <span className="text-xs font-bold">{user?.name} (관리자)</span>
-                         </div>
-                         <div className="flex items-center space-x-2 text-slate-500">
-                           <Mail className="w-3.5 h-3.5" />
-                           <span className="text-[11px] truncate whitespace-nowrap overflow-hidden">{user?.email}</span>
-                         </div>
-                         <div className="flex items-center space-x-2 text-slate-500">
-                           <Building2 className="w-3.5 h-3.5" />
-                           <span className="text-[11px]">{user?.company}</span>
-                         </div>
-                       </div>
-                     </div>
-                     <div className="p-1">
-                       <button 
-                         onClick={() => {
-                           if (confirm('관리자 세션을 종료하시겠습니까?')) {
-                             logout();
-                             navigate('/');
-                           }
-                         }}
-                         className="flex items-center space-x-2 w-full px-3 py-2 text-xs font-bold text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                       >
-                         <LogOut className="w-3.5 h-3.5" />
-                         <span>관리 시스템 로그아웃</span>
-                       </button>
-                     </div>
-                   </motion.div>
-                 )}
-               </AnimatePresence>
-             </div>
-           </div>
-         </div>
+              <AnimatePresence>
+                {isProfileOpen && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden z-[100] text-left"
+                  >
+                    <div className="p-4 border-b border-slate-50 bg-slate-50/50">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">관리 시스템 정보</p>
+                      <div className="space-y-2">
+                        <div className="flex items-center space-x-2 text-slate-600">
+                          <User className="w-3.5 h-3.5" />
+                          <span className="text-xs font-bold">{user?.name}</span>
+                        </div>
+                        <div className="flex items-center space-x-2 text-slate-500">
+                          <Mail className="w-3.5 h-3.5" />
+                          <span className="text-[11px] truncate whitespace-nowrap overflow-hidden">{user?.email}</span>
+                        </div>
+                        <div className="flex items-center space-x-2 text-slate-500">
+                          <Building2 className="w-3.5 h-3.5" />
+                          <span className="text-[11px]">{user?.company}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="p-1">
+                      <button 
+                        onClick={() => {
+                          if (confirm('관리자 세션을 종료하시겠습니까?')) {
+                            logout();
+                            navigate('/');
+                          }
+                        }}
+                        className="flex items-center space-x-2 w-full px-3 py-2 text-xs font-bold text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                      >
+                        <LogOut className="w-3.5 h-3.5" />
+                        <span>관리 시스템 로그아웃</span>
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+        </div>
 
-        <div className="bg-white rounded-[32px] shadow-sm border border-slate-100 overflow-hidden">
+        {/* Orders Table */}
+        <div className="bg-white rounded-[32px] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50/50">
-                  <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">주문 ID</th>
-                  <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">파트너사 / 주문자</th>
-                  <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">제품 규격</th>
-                  <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">수량</th>
-                  <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">현재 공정</th>
-                  <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">상태 변경</th>
+                <tr className="bg-slate-50/50 border-b border-slate-100">
+                  <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">주문 ID</th>
+                  <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">파트너사 / 주문자</th>
+                  <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">제품 규격</th>
+                  <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">가공/타입</th>
+                  <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">수량/포장</th>
+                  <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center">공정 상태</th>
+                  <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">변경</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {isLoading ? (
+                {isOrdersLoading ? (
                   Array(5).fill(0).map((_, i) => (
                     <tr key={i} className="animate-pulse">
-                      <td colSpan={6} className="px-6 py-8 h-16 bg-slate-50/10"></td>
+                      <td colSpan={7} className="px-6 py-12 h-16 bg-slate-50/10">
+                         <div className="h-4 bg-slate-100 rounded-full w-3/4 mx-auto"></div>
+                      </td>
                     </tr>
                   ))
                 ) : filteredOrders.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-20 text-center text-slate-400 font-medium">
+                    <td colSpan={7} className="px-6 py-20 text-center text-slate-400 font-medium">
                       검색 조건에 맞는 주문 내역이 없습니다.
                     </td>
                   </tr>
                 ) : (
                   filteredOrders.map((order) => (
-                    <tr key={order.id} className="hover:bg-slate-50/80 transition-colors">
+                    <tr key={`${order.product_category}-${order.id}`} className="hover:bg-slate-50/80 transition-colors group">
                       <td className="px-6 py-5">
-                        <span className="text-xs font-bold text-slate-400">#ORD-{order.id.toString().padStart(5, '0')}</span>
+                        <span className="text-xs font-bold text-slate-400 group-hover:text-brand-600 transition-colors">#ORD-{order.id.toString().padStart(5, '0')}</span>
                       </td>
                       <td className="px-6 py-5">
                         <div className="flex flex-col">
@@ -211,21 +263,55 @@ export default function Admin() {
                         </div>
                       </td>
                       <td className="px-6 py-5">
-                        <span className="text-[11px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
-                          {order.outer_diameter}*{order.inner_diameter}*{order.sponge_length}*{order.total_length}
-                        </span>
+                        <div className="flex flex-col">
+                          <span className={cn(
+                            "text-[10px] font-bold px-1.5 py-0.5 rounded border self-start mb-1.5",
+                            order.product_category === '롤러' ? "text-blue-600 bg-blue-50 border-blue-100" : "text-pink-600 bg-pink-50 border-pink-100"
+                          )}>
+                            {order.product_category}
+                          </span>
+                          <span className="text-[11px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
+                            {order.product_category === '롤러' 
+                              ? `${order.outer_diameter}*${order.inner_diameter}*${order.sponge_length}*${order.total_length}`
+                              : order.type === '원형' ? `지름:${order.diameter} / 두께:${order.thickness}` : `가로:${order.width}*세로:${order.height} / 두께:${order.thickness}`
+                            }
+                          </span>
+                        </div>
                       </td>
                       <td className="px-6 py-5">
-                        <span className="text-sm font-bold text-brand-600">{order.quantity}EA</span>
+                        <div className="flex flex-col space-y-1">
+                          {order.product_category === '롤러' ? (
+                            <>
+                              <div className="flex items-center space-x-1">
+                                <span className="text-[9px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100/50">홀:{order.hole_processing || '없음'}</span>
+                                <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100/50">컷팅:{order.cutting_type || '없음'}</span>
+                              </div>
+                              <span className="text-[10px] text-slate-500 font-medium">{order.type || '미지정'}</span>
+                            </>
+                          ) : (
+                            <div className="flex items-center space-x-1">
+                              <span className="text-[9px] font-bold text-pink-600 bg-pink-50 px-1.5 py-0.5 rounded border border-pink-100/50">색상:{order.color}</span>
+                              <span className="text-[9px] font-bold text-slate-600 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100/50">형태:{order.type}</span>
+                            </div>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-5">
+                        <div className="flex flex-col items-start">
+                          <span className="text-sm font-bold text-brand-600">{order.quantity}EA</span>
+                          {order.individual_packaging && (
+                            <span className="text-[9px] font-bold text-pink-600 bg-pink-50 px-1.5 py-0.5 rounded-md mt-1 border border-pink-100">개별포장</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-5 text-center">
                         <StatusBadge status={order.status || '주문 요청'} />
                       </td>
                       <td className="px-6 py-5 text-right">
                         <select 
                           value={order.status || '주문 요청'}
-                          onChange={(e) => updateStatus(order.id, e.target.value)}
-                          className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold focus:ring-2 focus:ring-brand-500/20 outline-none cursor-pointer hover:border-slate-300 transition-colors"
+                          onChange={(e) => updateStatus(order.id, e.target.value, order.product_category)}
+                          className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold focus:ring-2 focus:ring-brand-500/20 outline-none cursor-pointer hover:border-slate-300 transition-colors shadow-sm"
                         >
                           {STATUS_STEPS.map(step => (
                             <option key={step} value={step}>{step}</option>
