@@ -31,6 +31,13 @@ export default function Login() {
         return;
       }
 
+      // 비밀번호 체크 추가
+      if (data.password && data.password !== password) {
+        alert('비밀번호가 일치하지 않습니다.');
+        setIsLoading(false);
+        return;
+      }
+
       // 로그인 성공 처리
       login({
         name: data.name,

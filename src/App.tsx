@@ -15,6 +15,7 @@ import Quote from './pages/Quote';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import SignupSuccess from './pages/SignupSuccess';
+import Profile from './pages/Profile';
 
 import Admin from './pages/Admin';
 
@@ -36,6 +37,7 @@ function AppContent() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/signup-success" element={<SignupSuccess />} />
+          <Route path="/profile" element={<Profile />} />
           <Route path="/admin" element={<Admin />} />
         </Routes>
       </main>

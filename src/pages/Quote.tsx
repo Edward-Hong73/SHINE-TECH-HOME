@@ -32,12 +32,18 @@ export default function Quote() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   
   const [industrialSettings, setIndustrialSettings] = useState({
-    outerDiameter: '120',
-    innerDiameter: '32',
+    outerDiameter: '32',
+    customOuterDiameter: '',
+    innerDiameter: '16',
+    customInnerDiameter: '',
+    holeProcessing: '홀가공 없음',
+    customHoleProcessing: '',
+    type: '파이프 타입',
     totalLength: '600',
     spongeLength: '500',
     quantity: '1',
-    individualPackaging: true
+    individualPackaging: false,
+    cuttingType: '없음'
   });
 
   const [cosmeticSettings, setCosmeticSettings] = useState({
@@ -80,13 +86,27 @@ export default function Quote() {
       const { raw } = orderToReorder;
       setEditingOrderId(null); // Reorder is always a NEW order
       if (orderToReorder.category === '롤러') {
+        const outerOptions = ['20','25','30','32','35','40','45','50','55','60','65','77','83','100'];
+        const innerOptions = ['6','8','10','13','16','20','25','40'];
+        const holeOptions = ['홀가공 없음','4','5','6','7','8','9','10'];
+        
+        const outerVal = raw.outer_diameter?.toString() || '';
+        const innerVal = raw.inner_diameter?.toString() || '';
+        const holeVal = raw.hole_processing?.toString() || '홀가공 없음';
+
         setIndustrialSettings({
-          outerDiameter: raw.outer_diameter?.toString() || '',
-          innerDiameter: raw.inner_diameter?.toString() || '',
+          outerDiameter: outerOptions.includes(outerVal) ? outerVal : '직접입력',
+          customOuterDiameter: outerOptions.includes(outerVal) ? '' : outerVal,
+          innerDiameter: innerOptions.includes(innerVal) ? innerVal : '직접 입력',
+          customInnerDiameter: innerOptions.includes(innerVal) ? '' : innerVal,
+          holeProcessing: holeOptions.includes(holeVal) ? holeVal : '직접 입력',
+          customHoleProcessing: holeOptions.includes(holeVal) ? '' : holeVal,
+          type: raw.type || '파이프 타입',
           totalLength: raw.total_length?.toString() || '600',
           spongeLength: raw.sponge_length?.toString() || '500',
           quantity: raw.quantity?.toString() || '1',
-          individualPackaging: raw.individual_packaging ?? true
+          individualPackaging: raw.individual_packaging ?? false,
+          cuttingType: raw.cutting_type || '없음'
         });
       } else {
         setCosmeticSettings({
@@ -109,13 +129,27 @@ export default function Quote() {
       const { raw } = order;
       setEditingOrderId(raw.id); // Store the ID for updating
       if (order.category === '롤러') {
+        const outerOptions = ['20','25','30','32','35','40','45','50','55','60','65','77','83','100'];
+        const innerOptions = ['6','8','10','13','16','20','25','40'];
+        const holeOptions = ['홀가공 없음','4','5','6','7','8','9','10'];
+        
+        const outerVal = raw.outer_diameter?.toString() || '';
+        const innerVal = raw.inner_diameter?.toString() || '';
+        const holeVal = raw.hole_processing?.toString() || '홀가공 없음';
+
         setIndustrialSettings({
-          outerDiameter: raw.outer_diameter?.toString() || '',
-          innerDiameter: raw.inner_diameter?.toString() || '',
+          outerDiameter: outerOptions.includes(outerVal) ? outerVal : '직접입력',
+          customOuterDiameter: outerOptions.includes(outerVal) ? '' : outerVal,
+          innerDiameter: innerOptions.includes(innerVal) ? innerVal : '직접 입력',
+          customInnerDiameter: innerOptions.includes(innerVal) ? '' : innerVal,
+          holeProcessing: holeOptions.includes(holeVal) ? holeVal : '직접 입력',
+          customHoleProcessing: holeOptions.includes(holeVal) ? '' : holeVal,
+          type: raw.type || '파이프 타입',
           totalLength: raw.total_length?.toString() || '600',
           spongeLength: raw.sponge_length?.toString() || '500',
           quantity: raw.quantity?.toString() || '1',
-          individualPackaging: raw.individual_packaging ?? true
+          individualPackaging: raw.individual_packaging ?? false,
+          cuttingType: raw.cutting_type || '없음'
         });
       } else {
         setCosmeticSettings({
@@ -134,20 +168,23 @@ export default function Quote() {
   };
 
   useEffect(() => {
-    fetchCompanyInfo();
-  }, []);
+    if (user?.businessNumber) {
+      fetchCompanyInfo(user.businessNumber);
+    }
+  }, [user]);
 
   useEffect(() => {
     fetchPastOrders(user?.businessNumber || 'DEMO');
   }, [user]);
 
-  const fetchCompanyInfo = async () => {
+  const fetchCompanyInfo = async (bizNum: string) => {
+    if (!bizNum || bizNum === 'DEMO') return;
+    
     setIsLoading(true);
     const { data, error } = await supabase
       .from('companies_shine')
       .select('main_category')
-      .order('created_at', { ascending: false })
-      .limit(1)
+      .eq('business_number', bizNum)
       .maybeSingle();
 
     if (data && data.main_category) {
@@ -158,36 +195,22 @@ export default function Quote() {
   };
 
   const fetchPastOrders = async (bizNum: string) => {
-    if (bizNum === 'DEMO') {
-      setPastOrders([
-        {
-          id: 'ORD-C-00001',
-          type: '미용 클린싱 (원형)',
-          status: '배송 완료',
-          summary: '83*10 (수량: 500EA)',
-          date: '2024.03.15',
-          created_at: '2024-03-15T10:00:00',
-          category: '클린싱',
-          raw: { type: '원형', diameter: 83, thickness: 10, quantity: 500, color: '핑크' }
-        },
-        {
-          id: 'ORD-R-00001',
-          type: '산업용 롤러',
-          status: '주문 승인',
-          summary: '150*32*400*500 (수량: 5EA)',
-          date: '2024.03.10',
-          created_at: '2024-03-10T14:30:00',
-          category: '롤러',
-          raw: { outer_diameter: 150, inner_diameter: 32, sponge_length: 400, total_length: 500, quantity: 5 }
-        }
-      ]);
+    console.log('--- Fetching Orders Started ---');
+    console.log('Business Number Filter:', bizNum);
+
+    if (!bizNum || bizNum === 'undefined' || bizNum === 'null') {
+      console.warn('Invalid business number provided for filtering');
+      setPastOrders([]);
       return;
     }
 
     const [rollerResult, cleansingResult] = await Promise.all([
-      supabase.from('order_roller_shine').select('*').eq('business_number', bizNum),
-      supabase.from('order_cleansing_shine').select('*').eq('business_number', bizNum)
+      supabase.from('order_roller_shine').select('*').eq('business_number', bizNum).not('business_number', 'is', null),
+      supabase.from('order_cleansing_shine').select('*').eq('business_number', bizNum).not('business_number', 'is', null)
     ]);
+
+    console.log('Roller Result Count:', rollerResult.data?.length || 0);
+    console.log('Cleansing Result Count:', cleansingResult.data?.length || 0);
 
     if (rollerResult.error || cleansingResult.error) {
       const error = rollerResult.error || cleansingResult.error;
@@ -200,7 +223,7 @@ export default function Quote() {
       id: `ORD-R-${order.id.toString().padStart(5, '0')}`,
       type: '산업용 롤러',
       status: order.status || '주문 요청',
-      summary: `${order.outer_diameter}*${order.inner_diameter}*${order.sponge_length}*${order.total_length} (수량: ${order.quantity}EA)`,
+      summary: `${order.outer_diameter}*${order.inner_diameter}*${order.sponge_length}*${order.total_length} (컷팅:${order.cutting_type || '없음'}, 홀:${order.hole_processing || '없음'}, ${order.type}) (수량: ${order.quantity}EA)`,
       date: new Date(order.created_at).toLocaleDateString(),
       created_at: order.created_at,
       raw: order,
@@ -231,97 +254,11 @@ export default function Quote() {
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
 
-    if (allOrders.length === 0) {
-      // Show mock data if DB is empty for this company
-      setPastOrders([
-        {
-          id: 'ORD-C-SAMPLE',
-          type: '미용 클린싱 (원형)',
-          status: '샘플 데이터',
-          summary: '83*10 (수량: 100EA)',
-          date: new Date().toLocaleDateString(),
-          created_at: new Date().toISOString(),
-          category: '클린싱',
-          raw: { type: '원형', diameter: 83, thickness: 10, quantity: 100, color: '블루' }
-        }
-      ]);
-    } else {
-      setPastOrders(allOrders);
-    }
+    setPastOrders(allOrders);
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 pt-20 pb-12">
-      {/* Aggressive Debug Header */}
-      <div className={cn(
-        "fixed top-16 left-0 right-0 z-[100] text-white text-xs px-4 py-2 flex justify-between items-center shadow-lg",
-        user?.businessNumber ? "bg-slate-900" : "bg-red-600 animate-pulse"
-      )}>
-        <div className="flex items-center space-x-4">
-          <span className="font-bold">시스템 상태:</span>
-          <span>사용자: <b>{user?.name || '익명'}</b></span>
-          <span>사업자번호: <b>{user?.businessNumber || '정보 없음 (재로그인 필요)'}</b></span>
-        </div>
-        <div className="text-[10px] opacity-70">
-          Quote.tsx v2.0 - {new Date().toLocaleTimeString()}
-        </div>
-      </div>
-
-      {/* Header / Sub-Nav */}
-      <div className="bg-white border-b border-slate-200 sticky top-0 z-30 mb-8 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center space-x-8">
-            <div className="flex items-center space-x-2 mr-4 group text-slate-900 font-bold">
-              <button 
-                onClick={() => {
-                  if (confirm('로그아웃 하시겠습니까?')) {
-                    navigate('/login');
-                  }
-                }}
-                className="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center shrink-0 hover:bg-brand-700 transition-colors shadow-lg shadow-brand-200/50"
-                title="로그아웃"
-              >
-                <LogOut className="text-white w-4 h-4" />
-              </button>
-              <span className="text-lg tracking-tighter">
-                SHINE<span className="text-brand-500 underline underline-offset-4 decoration-2">TECH</span>
-              </span>
-              <div className="ml-4 px-2 py-0.5 bg-brand-50 text-brand-600 text-[10px] font-bold rounded border border-brand-100 flex items-center">
-                {isLoading ? '연결 중..' : `${companyCategory} 파트너`}
-              </div>
-            </div>
-            <nav className="hidden md:flex space-x-6">
-              {[
-                { name: '대시보드', icon: LayoutDashboard, active: false },
-                { name: '주문', icon: ShoppingCart, active: true },
-                { name: '인벤토리', icon: Layers, active: false },
-                { name: '고객지원', icon: Heart, active: false }
-              ].map((item) => (
-                <button 
-                  key={item.name} 
-                  className={cn(
-                    "flex items-center space-x-2 text-sm font-semibold transition-colors py-2 border-b-2",
-                    item.active ? "text-brand-600 border-brand-600" : "text-slate-500 border-transparent hover:text-slate-800"
-                  )}
-                >
-                  <item.icon className="w-4 h-4" />
-                  <span>{item.name}</span>
-                </button>
-              ))}
-            </nav>
-          </div>
-          <div className="flex items-center space-x-4">
-            <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center border border-amber-200">
-               <User className="text-amber-600 w-4 h-4" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[11px] font-bold text-slate-900 leading-none">{user?.name || '익명'}</span>
-              <span className="text-[9px] text-slate-400 font-medium">프리미엄 파트너</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
+    <div className="min-h-screen bg-slate-50 pt-24 pb-12">
       {/* Main Content Area: Vertical Stack (Setup above History) */}
       <div className="max-w-7xl mx-auto px-4">
         <div className="space-y-8">
@@ -339,50 +276,181 @@ export default function Quote() {
                 animate={{ opacity: 1, y: 0 }}
                 className="bg-white rounded-3xl p-8 shadow-md border border-slate-100"
               >
-                <div className="flex items-center space-x-2 mb-8">
-                  <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center shrink-0">
-                    <Package className="text-blue-600 w-4 h-4" />
-                  </div>
-                  <h3 className="font-extrabold text-slate-800 tracking-tight">PVA 스폰지 롤러 설정</h3>
-                </div>
+                <div className="space-y-8">
+                  {/* 1st Row: Core Dimensions */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {/* Outer Diameter */}
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1">스폰지 외경 (MM)</label>
+                      <div className="flex flex-col gap-2">
+                        <select 
+                          value={industrialSettings.outerDiameter}
+                          onChange={(e) => setIndustrialSettings({...industrialSettings, outerDiameter: e.target.value})}
+                          className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl focus:bg-white focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all text-sm font-semibold appearance-none cursor-pointer"
+                        >
+                          {['20','25','30','32','35','40','45','50','55','60','65','77','83','100','직접입력'].map(opt => (
+                            <option key={opt} value={opt}>{opt}{opt !== '직접입력' ? ' mm' : ''}</option>
+                          ))}
+                        </select>
+                        {industrialSettings.outerDiameter === '직접입력' && (
+                          <input 
+                            type="text" 
+                            placeholder="외경직접입력"
+                            value={industrialSettings.customOuterDiameter}
+                            onChange={(e) => setIndustrialSettings({...industrialSettings, customOuterDiameter: e.target.value})}
+                            className="w-full px-4 py-2.5 bg-white border border-brand-200 rounded-xl focus:ring-2 focus:ring-brand-500/20 outline-none transition-all text-sm font-semibold"
+                          />
+                        )}
+                      </div>
+                    </div>
 
-                <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-                  {[
-                    { label: "스폰지 외경 (MM)", value: industrialSettings.outerDiameter, key: "outerDiameter" },
-                    { label: "내경 (mm)", value: industrialSettings.innerDiameter, key: "innerDiameter" },
-                    { label: "스폰지 길이 (MM)", value: industrialSettings.spongeLength, key: "spongeLength" },
-                    { label: "전체 길이 (MM)", value: industrialSettings.totalLength, key: "totalLength" },
-                    { label: "수량", value: industrialSettings.quantity, key: "quantity" },
-                  ].map((input) => (
-                    <div key={input.key} className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1">{input.label}</label>
+                    {/* Inner Diameter */}
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1">내경 (mm)</label>
+                      <div className="flex flex-col gap-2">
+                        <select 
+                          value={industrialSettings.innerDiameter}
+                          onChange={(e) => setIndustrialSettings({...industrialSettings, innerDiameter: e.target.value})}
+                          className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl focus:bg-white focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all text-sm font-semibold appearance-none cursor-pointer"
+                        >
+                          {['6','8','10','13','16','20','25','40','직접 입력'].map(opt => (
+                            <option key={opt} value={opt}>{opt}{opt !== '직접 입력' ? ' mm' : ''}</option>
+                          ))}
+                        </select>
+                        {industrialSettings.innerDiameter === '직접 입력' && (
+                          <input 
+                            type="text" 
+                            placeholder="내경직접입력"
+                            value={industrialSettings.customInnerDiameter}
+                            onChange={(e) => setIndustrialSettings({...industrialSettings, customInnerDiameter: e.target.value})}
+                            className="w-full px-4 py-2.5 bg-white border border-brand-200 rounded-xl focus:ring-2 focus:ring-brand-500/20 outline-none transition-all text-sm font-semibold"
+                          />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Sponge Length */}
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1">스폰지 길이 (MM)</label>
                       <input 
                         type="text" 
-                        value={input.value}
-                        onChange={(e) => setIndustrialSettings({...industrialSettings, [input.key]: e.target.value})}
+                        value={industrialSettings.spongeLength}
+                        onChange={(e) => setIndustrialSettings({...industrialSettings, spongeLength: e.target.value})}
                         className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl focus:bg-white focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all text-sm font-semibold"
                       />
                     </div>
-                  ))}
+
+                    {/* Total Length */}
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1">전체 길이 (MM)</label>
+                      <input 
+                        type="text" 
+                        value={industrialSettings.totalLength}
+                        onChange={(e) => setIndustrialSettings({...industrialSettings, totalLength: e.target.value})}
+                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl focus:bg-white focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all text-sm font-semibold"
+                      />
+                    </div>
+                  </div>
+
+                  {/* 2nd Row: Options & Quantity */}
+                  {/* Industrial Order Form - Row 2: Cutting Type, Hole, Type, Qty, Packaging */}
+                  <div className="grid grid-cols-5 gap-4 border-t border-slate-50 pt-8">
+                    {/* Cutting Type */}
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1">스펀지 컷팅</label>
+                      <select 
+                        value={industrialSettings.cuttingType}
+                        onChange={(e) => setIndustrialSettings({...industrialSettings, cuttingType: e.target.value})}
+                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all"
+                      >
+                        <option value="없음">없음</option>
+                        <option value="한쪽">한쪽</option>
+                        <option value="양쪽">양쪽</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1">홀 가공 (파이)</label>
+                      <div className="flex gap-2">
+                        <select 
+                          value={industrialSettings.holeProcessing}
+                          onChange={(e) => setIndustrialSettings({...industrialSettings, holeProcessing: e.target.value, customHoleProcessing: e.target.value === '직접 입력' ? industrialSettings.customHoleProcessing : ''})}
+                          className="flex-1 px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all"
+                        >
+                          <option value="홀가공 없음">홀가공 없음</option>
+                          <option value="4">4</option>
+                          <option value="5">5</option>
+                          <option value="6">6</option>
+                          <option value="7">7</option>
+                          <option value="8">8</option>
+                          <option value="9">9</option>
+                          <option value="10">10</option>
+                          <option value="직접 입력">직접 입력</option>
+                        </select>
+                        {industrialSettings.holeProcessing === '직접 입력' && (
+                          <input 
+                            type="text"
+                            placeholder="입력"
+                            value={industrialSettings.customHoleProcessing}
+                            onChange={(e) => setIndustrialSettings({...industrialSettings, customHoleProcessing: e.target.value})}
+                            className="w-16 px-1 py-1 bg-white border border-brand-200 rounded-xl text-center text-sm font-bold text-brand-600 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-all"
+                          />
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1">타입</label>
+                      <select 
+                        value={industrialSettings.type}
+                        onChange={(e) => setIndustrialSettings({...industrialSettings, type: e.target.value})}
+                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all"
+                      >
+                        <option value="파이프 타입">파이프 타입</option>
+                        <option value="튜브 타입">튜브 타입</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1">수량 (EA)</label>
+                      <input 
+                        type="number"
+                        min="1"
+                        value={industrialSettings.quantity}
+                        onChange={(e) => setIndustrialSettings({...industrialSettings, quantity: e.target.value})}
+                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all"
+                      />
+                    </div>
+
+                    {/* Individual Packaging Toggle */}
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1">개별 포장</label>
+                      <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200 h-[46px]">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-semibold text-slate-700">개별 포장</span>
+                          <span className="text-[10px] text-slate-500">(포장 시 1,000원/개 추가)</span>
+                        </div>
+                        <button 
+                          type="button"
+                          onClick={() => setIndustrialSettings({...industrialSettings, individualPackaging: !industrialSettings.individualPackaging})}
+                          className={cn(
+                            "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none",
+                            industrialSettings.individualPackaging ? "bg-brand-600" : "bg-slate-200"
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                              industrialSettings.individualPackaging ? "translate-x-6" : "translate-x-1"
+                            )}
+                          />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl mb-6">
-                  <span className="text-xs font-bold text-slate-600">개별 포장 여부</span>
-                  <button 
-                    onClick={() => setIndustrialSettings({...industrialSettings, individualPackaging: !industrialSettings.individualPackaging})}
-                    className={cn(
-                      "w-10 h-5 rounded-full transition-colors relative",
-                      industrialSettings.individualPackaging ? "bg-brand-600" : "bg-slate-300"
-                    )}
-                  >
-                    <div className={cn(
-                      "absolute top-1 w-3 h-3 bg-white rounded-full transition-all",
-                      industrialSettings.individualPackaging ? "right-1" : "left-1"
-                    )} />
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4 mt-8 pt-8 border-t border-slate-100">
                   <button 
                     onClick={() => alert('견적 문의가 성공적으로 접수되었습니다. 담당 매니저가 연락드리겠습니다.')}
                     className="py-4 bg-white border-2 border-brand-600 text-brand-600 font-bold rounded-2xl hover:bg-brand-50 transition-all text-sm"
@@ -588,7 +656,9 @@ export default function Quote() {
                           </th>
                           <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">주문 번호</th>
                           <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">카테고리</th>
-                          <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">상세 내역</th>
+                          <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">규격 (外*內*L*TL)</th>
+                          <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center">홀/컷팅/타입</th>
+                          <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center">수량</th>
                           <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">주문 일자</th>
                           <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">관리</th>
                         </tr>
@@ -616,11 +686,36 @@ export default function Quote() {
                                   "w-2 h-2 rounded-full",
                                   order.category === '롤러' ? "bg-blue-500" : "bg-pink-500"
                                 )} />
-                                <span className="text-sm font-semibold text-slate-700">{order.type}</span>
+                                <span className="text-sm font-semibold text-slate-700">{order.type_display || order.type}</span>
                               </div>
                             </td>
                             <td className="px-6 py-5">
-                              <span className="text-sm text-slate-600 line-clamp-1">{order.summary}</span>
+                              <span className="text-sm text-slate-600 font-medium">
+                                {order.category === '롤러' 
+                                  ? `${order.raw.outer_diameter}*${order.raw.inner_diameter}*${order.raw.sponge_length}*${order.raw.total_length}`
+                                  : order.summary.split(' (')[0]
+                                }
+                              </span>
+                            </td>
+                            <td className="px-6 py-5 text-center whitespace-nowrap min-w-[200px]">
+                              {order.category === '롤러' ? (
+                                <div className="flex items-center justify-center space-x-1.5">
+                                  <span className="inline-flex items-center text-[9px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100/50">
+                                    홀:{order.raw.hole_processing || '없음'}
+                                  </span>
+                                  <span className="inline-flex items-center text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100/50">
+                                    컷팅:{order.raw.cutting_type || '없음'}
+                                  </span>
+                                  <span className="inline-flex items-center text-[10px] font-semibold text-slate-500 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200/50">
+                                    {order.raw.type || '미지정'}
+                                  </span>
+                                </div>
+                              ) : (
+                                <span className="text-xs text-slate-300">-</span>
+                              )}
+                            </td>
+                            <td className="px-6 py-5 text-center">
+                              <span className="text-sm font-bold text-slate-900">{order.raw.quantity}EA</span>
                             </td>
                             <td className="px-6 py-5 text-right">
                               <span className="text-xs font-bold text-slate-400">{order.date}</span>
@@ -733,12 +828,14 @@ export default function Quote() {
                         PVA 스폰지 롤러 설정 요약
                       </h4>
                       <div className="grid grid-cols-2 gap-y-3 gap-x-6">
-                        <div className="flex justify-between text-sm"><span className="text-slate-500">외경:</span><span className="font-bold text-slate-800">{industrialSettings.outerDiameter}mm</span></div>
-                        <div className="flex justify-between text-sm"><span className="text-slate-500">내경:</span><span className="font-bold text-slate-800">{industrialSettings.innerDiameter}mm</span></div>
+                        <div className="flex justify-between text-sm"><span className="text-slate-500">외경:</span><span className="font-bold text-slate-800">{industrialSettings.outerDiameter === '직접입력' ? industrialSettings.customOuterDiameter : industrialSettings.outerDiameter}mm</span></div>
+                        <div className="flex justify-between text-sm"><span className="text-slate-500">내경:</span><span className="font-bold text-slate-800">{industrialSettings.innerDiameter === '직접 입력' ? industrialSettings.customInnerDiameter : industrialSettings.innerDiameter}mm</span></div>
+                        <div className="flex justify-between text-sm"><span className="text-slate-500">홀가공:</span><span className="font-bold text-slate-800">{industrialSettings.holeProcessing === '직접 입력' ? industrialSettings.customHoleProcessing : industrialSettings.holeProcessing}{(!isNaN(Number(industrialSettings.holeProcessing)) || (industrialSettings.holeProcessing === '직접 입력' && !isNaN(Number(industrialSettings.customHoleProcessing)))) ? 'Φ' : ''}</span></div>
+                        <div className="flex justify-between text-sm"><span className="text-slate-500">타입:</span><span className="font-bold text-slate-800">{industrialSettings.type}</span></div>
                         <div className="flex justify-between text-sm"><span className="text-slate-500">스폰지 길이:</span><span className="font-bold text-slate-800">{industrialSettings.spongeLength}mm</span></div>
                         <div className="flex justify-between text-sm"><span className="text-slate-500">전체 길이:</span><span className="font-bold text-slate-800">{industrialSettings.totalLength}mm</span></div>
-                        <div className="flex justify-between text-sm"><span className="text-slate-500">총 수량:</span><span className="font-bold text-brand-600">{industrialSettings.quantity}EA</span></div>
-                        <div className="flex justify-between text-sm"><span className="text-slate-500">개별 포장:</span><span className="font-bold text-slate-800">{industrialSettings.individualPackaging ? '예' : '아니오'}</span></div>
+                        <div className="flex justify-between text-sm border-t border-slate-100 pt-2"><span className="text-slate-500">총 수량:</span><span className="font-bold text-brand-600">{industrialSettings.quantity}EA</span></div>
+                        <div className="flex justify-between text-sm border-t border-slate-100 pt-2"><span className="text-slate-500">개별 포장:</span><span className="font-bold text-slate-800">{industrialSettings.individualPackaging ? '예' : '아니오'}</span></div>
                       </div>
                     </div>
                   ) : (
@@ -776,8 +873,10 @@ export default function Quote() {
                     onClick={async () => {
                       if (companyCategory === '롤러') {
                         const orderData = {
-                          outer_diameter: industrialSettings.outerDiameter,
-                          inner_diameter: industrialSettings.innerDiameter,
+                          outer_diameter: industrialSettings.outerDiameter === '직접입력' ? industrialSettings.customOuterDiameter : industrialSettings.outerDiameter,
+                          inner_diameter: industrialSettings.innerDiameter === '직접 입력' ? industrialSettings.customInnerDiameter : industrialSettings.innerDiameter,
+                          hole_processing: industrialSettings.holeProcessing === '직접 입력' ? industrialSettings.customHoleProcessing : industrialSettings.holeProcessing,
+                          type: industrialSettings.type,
                           total_length: industrialSettings.totalLength,
                           sponge_length: industrialSettings.spongeLength,
                           quantity: industrialSettings.quantity,

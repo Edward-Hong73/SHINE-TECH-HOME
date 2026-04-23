@@ -125,6 +125,15 @@ export default function Navbar() {
 
                     <div className="p-2">
                       <Link 
+                        to="/profile" 
+                        onClick={() => setIsProfileOpen(false)}
+                        className="flex items-center space-x-3 w-full px-4 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-brand-600 rounded-xl transition-colors border-b border-slate-50"
+                      >
+                        <SettingsIcon className="w-4 h-4" />
+                        <span>내 정보 수정</span>
+                      </Link>
+
+                      <Link 
                         to="/quote" 
                         onClick={() => setIsProfileOpen(false)}
                         className="flex items-center space-x-3 w-full px-4 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-brand-600 rounded-xl transition-colors"
