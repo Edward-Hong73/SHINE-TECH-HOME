@@ -17,7 +17,9 @@ import {
   Layers,
   Heart,
   Zap,
-  Edit2
+  Edit2,
+  X,
+  Trash2
 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -82,6 +84,43 @@ export default function Quote() {
       setSelectedOrders([]);
     } else {
       setSelectedOrders(pastOrders.map(o => o.id));
+    }
+  };
+
+  const handleDeleteOrders = async () => {
+    if (selectedOrders.length === 0) {
+      alert('취소할 주문을 선택해주세요.');
+      return;
+    }
+
+    if (!confirm(`선택한 ${selectedOrders.length}건의 주문을 취소(삭제)하시겠습니까?`)) {
+      return;
+    }
+
+    try {
+      const deletePromises = selectedOrders.map(async (orderId) => {
+        const order = pastOrders.find(o => o.id === orderId);
+        if (!order) return;
+
+        const tableName = order.category === '롤러' ? 'order_roller_shine' : 'order_cleansing_shine';
+        return supabase.from(tableName).delete().eq('id', orderId);
+      });
+
+      const results = await Promise.all(deletePromises);
+      const errors = results.filter(r => r?.error);
+
+      if (errors.length > 0) {
+        alert('일부 주문을 취소하는 중 오류가 발생했습니다.');
+      } else {
+        alert('선택한 주문이 취소되었습니다.');
+        setSelectedOrders([]);
+        if (user?.businessNumber) {
+          fetchPastOrders(user.businessNumber);
+        }
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+      alert('주문 취소 처리 중 오류가 발생했습니다.');
     }
   };
 
@@ -654,13 +693,22 @@ export default function Quote() {
                   </div>
                   <h3 className="text-xl font-bold text-slate-800">최근 주문 내역</h3>
                 </div>
-                <button 
-                  onClick={handleReorder}
-                  className="flex items-center space-x-2 text-sm font-bold text-brand-600 bg-brand-50 px-4 py-2 rounded-lg hover:bg-brand-100 transition-colors"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                  <span>재주문 하기</span>
-                </button>
+                <div className="flex items-center space-x-2">
+                  <button 
+                    onClick={handleDeleteOrders}
+                    className="flex items-center space-x-2 text-sm font-bold text-red-600 bg-red-50 px-4 py-2 rounded-lg hover:bg-red-100 transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>주문 취소</span>
+                  </button>
+                  <button 
+                    onClick={handleReorder}
+                    className="flex items-center space-x-2 text-sm font-bold text-brand-600 bg-brand-50 px-4 py-2 rounded-lg hover:bg-brand-100 transition-colors"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    <span>재주문 하기</span>
+                  </button>
+                </div>
               </div>
 
               <div className="px-0 py-0">
@@ -838,7 +886,7 @@ export default function Quote() {
                   onClick={() => setIsModalOpen(false)}
                   className="p-2 text-slate-400 hover:text-slate-600 transition-colors"
                 >
-                  <RefreshCw className="w-5 h-5" />
+                  <X className="w-5 h-5" />
                 </button>
               </div>
 
@@ -907,11 +955,11 @@ export default function Quote() {
                           company_name: user?.company || '정보 없음',
                           business_number: user?.businessNumber || '',
                           orderer_name: user?.name || '',
-                          user_id: user?.id,
                           ...(editingOrderId ? {} : { status: '주문 요청' })
                         };
 
 
+                        console.log('전송 시도 데이터 (롤러):', orderData);
                         let error;
                         if (editingOrderId) {
                           const { error: updateError } = await supabase
@@ -927,7 +975,8 @@ export default function Quote() {
                         }
 
                         if (error) {
-                          alert('주문 처리 중 오류가 발생했습니다: ' + error.message);
+                          console.error('주문 DB 입력 에러 상세:', error);
+                          alert('주문 처리 중 오류가 발생했습니다: ' + (error.message || '알 수 없는 에러'));
                           return;
                         }
                         
@@ -950,17 +999,18 @@ export default function Quote() {
                           company_name: user?.company || '정보 없음',
                           business_number: user?.businessNumber || '',
                           orderer_name: user?.name || '',
-                          user_id: user?.id,
                           status: '주문 요청'
                         };
 
 
+                        console.log('전송 시도 데이터 (클린싱):', cleansingData);
                         const { error: insertError } = await supabase
                           .from('order_cleansing_shine')
                           .insert([cleansingData]);
                         
                         if (insertError) {
-                          alert('주문 처리 중 오류가 발생했습니다: ' + insertError.message);
+                          console.error('클린싱 주문 DB 입력 에러 상세:', insertError);
+                          alert('주문 처리 중 오류가 발생했습니다: ' + (insertError.message || '알 수 없는 에러'));
                           return;
                         }
                         

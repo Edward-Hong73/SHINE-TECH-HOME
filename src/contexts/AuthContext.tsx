@@ -112,11 +112,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(false);
   };
 
-  const logout = () => {
-    setIsLoggedIn(false);
-    setUser(null);
-    localStorage.removeItem('shine_user');
-    setIsLoading(false);
+  const logout = async () => {
+    try {
+      await supabase.auth.signOut();
+      setIsLoggedIn(false);
+      setUser(null);
+      localStorage.removeItem('shine_user');
+      console.log('Logout successful');
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

@@ -131,7 +131,16 @@ export default function Navbar() {
                           </Link>
                         )}
                         <div className="h-px bg-slate-50 my-2 mx-2" />
-                        <button onClick={() => { if(confirm('로그아웃?')){logout(); setIsProfileOpen(false); navigate('/');} }} className="flex items-center space-x-3 w-full px-4 py-3 text-sm font-bold text-red-500 hover:bg-red-50 rounded-xl transition-colors">
+                        <button 
+                          onClick={async () => { 
+                            if(confirm('정말 로그아웃 하시겠습니까?')){
+                              await logout(); 
+                              setIsProfileOpen(false); 
+                              navigate('/login');
+                            } 
+                          }} 
+                          className="flex items-center space-x-3 w-full px-4 py-3 text-sm font-bold text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                        >
                           <LogOut className="w-4 h-4" />
                           <span>로그아웃</span>
                         </button>
