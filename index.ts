@@ -18,10 +18,12 @@ serve(async (req) => {
     const payload = await req.json()
     console.log('Webhook 수신 전체 데이터:', JSON.stringify(payload, null, 2))
 
-    // 이벤트 타입 확인 (INSERT, UPDATE, DELETE)
     const eventType = payload.type
-    // 데이터 추출 (삭제 시에는 old_record를 사용해야 어떤게 삭제됐는지 알 수 있습니다)
-    const orderData = eventType === 'DELETE' ? payload.old_record : payload.record
+    const record = payload.record
+    const oldRecord = payload.old_record
+    
+    // 데이터 추출 (삭제 시에는 old_record 사용)
+    const orderData = eventType === 'DELETE' ? oldRecord : record
     
     if (!orderData) {
       return new Response(JSON.stringify({ message: 'No data to process' }), { headers: corsHeaders })
@@ -30,41 +32,67 @@ serve(async (req) => {
     const tableName = payload.table || ''
     const isRoller = tableName.includes('order_roller_shine')
     
-    // 1. 상황별 제목 머리말 설정
-    let actionTitle = '[신규주문]'
-    if (eventType === 'UPDATE') actionTitle = '[주문변경]'
-    if (eventType === 'DELETE') actionTitle = '[주문취소]'
+    // 1. 제품 정보 및 규격 설정 (*를 일관되게 사용)
+    let specs = '';
+    if (isRoller) {
+      specs = `[규격: ${orderData.outer_diameter}*${orderData.inner_diameter}*${orderData.sponge_length}*${orderData.total_length}]`;
+    } else {
+      // 클린싱의 경우 타입에 따라 규격 구성
+      const dim = orderData.type === '원형' 
+        ? `${orderData.diameter}*${orderData.thickness}` 
+        : `${orderData.width}*${orderData.height}*${orderData.thickness}`;
+      specs = `[규격: ${dim}] (${orderData.type}/${orderData.color})`;
+    }
 
-    // 2. 업체명 설정
+    // 2. 상황별 제목 및 내용 구성
+    let actionTitle = '[신규주문]'
+    let orderBody = `ID: #ORD-${orderData.id}\n${specs}\n수량: ${orderData.quantity}EA`
+
+    if (eventType === 'UPDATE') {
+      actionTitle = '[주문변경]'
+      if (oldRecord && oldRecord.status !== record.status) {
+        orderBody = `주문하신 ${specs}의 '주문 상태'가 '${record.status}'로 업데이트 되었습니다.\n(ID: #ORD-${orderData.id})`
+      } else {
+        orderBody = `주문하신 ${specs}의 상세 내역이 수정되었습니다.\n(ID: #ORD-${orderData.id})`
+      }
+    } else if (eventType === 'DELETE') {
+      actionTitle = '[주문취소]'
+      orderBody = `주문하신 ${specs}의 주문이 취소되었습니다.\n(ID: #ORD-${orderData.id})`
+    }
+
+    // 3. 업체명 설정 (제목용)
     const company = orderData.company_name || orderData.company || '알 수 없는 업체'
-    
-    // 3. 제품 정보 설정 (규격 정보 포함)
-    const specs = isRoller 
-      ? `규격: ${orderData.outer_diameter}*${orderData.inner_diameter}*${orderData.sponge_length}*${orderData.total_length}`
-      : `제품: ${orderData.type || '클린싱'}`
-    
-    // 4. 메시지 조립
     const orderTitle = `${actionTitle} ${company}`
-    const orderBody = `ID: #ORD-${orderData.id}\n${specs}\n수량: ${orderData.quantity}EA`
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // FCM 토큰 목록 가져오기
+    // --- 수신자 토큰 필터링 로직 ---
+    
+    const { data: adminUsers } = await supabaseClient
+      .from('members_shine')
+      .select('id')
+      .eq('role', 'admin')
+    
+    const adminIds = (adminUsers || []).map(u => u.id)
+    const targetUserIds = [...adminIds]
+    if (orderData.user_id) {
+      targetUserIds.push(orderData.user_id)
+    }
+
     const { data: tokens, error: tokenError } = await supabaseClient
       .from('fcm_tokens')
       .select('token')
+      .in('user_id', targetUserIds)
 
     if (tokenError || !tokens || tokens.length === 0) {
-      console.log('알림을 보낼 토큰이 없습니다.');
-      return new Response(JSON.stringify({ message: 'No tokens found' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      return new Response(JSON.stringify({ message: 'No target tokens' }), { headers: corsHeaders })
     }
 
-    const fcmTokens = tokens.map(t => t.token);
+    const fcmTokens = Array.from(new Set(tokens.map(t => t.token)))
 
-    // Firebase Access Token 획득
     const accessToken = await getAccessToken({
       client_email: Deno.env.get('FIREBASE_CLIENT_EMAIL') ?? '',
       private_key: Deno.env.get('FIREBASE_PRIVATE_KEY')?.replace(/\\n/g, '\n') ?? '',
@@ -72,7 +100,6 @@ serve(async (req) => {
 
     const projectId = Deno.env.get('FIREBASE_PROJECT_ID')
     
-    // 모든 기기에 알림 전송
     const results = await Promise.all(fcmTokens.map(async (token) => {
       try {
         const response = await fetch(
@@ -92,7 +119,7 @@ serve(async (req) => {
                 },
                 webpush: {
                   fcm_options: {
-                    link: 'https://shine-tech-homepage.vercel.app/admin'
+                    link: 'https://shine-tech-homepage.vercel.app/quote'
                   }
                 }
               },
@@ -118,7 +145,7 @@ serve(async (req) => {
   }
 })
 
-// --- Helper Functions (Firebase Auth) ---
+// --- Helper Functions ---
 
 async function getAccessToken({ client_email, private_key }: { client_email: string, private_key: string }) {
   const header = { alg: 'RS256', typ: 'JWT' }
@@ -129,7 +156,6 @@ async function getAccessToken({ client_email, private_key }: { client_email: str
     exp: Math.floor(Date.now() / 1000) + 3600,
     iat: Math.floor(Date.now() / 1000),
   }
-
   const encodedHeader = b64(JSON.stringify(header))
   const encodedClaim = b64(JSON.stringify(claim))
   const signatureInput = `${encodedHeader}.${encodedClaim}`
@@ -141,7 +167,6 @@ async function getAccessToken({ client_email, private_key }: { client_email: str
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
   })
-
   const result = await response.json()
   return result.access_token
 }
@@ -159,7 +184,6 @@ async function sign(input: string, key: string) {
   for (let i = 0; i < binaryDerString.length; i++) {
     binaryDer[i] = binaryDerString.charCodeAt(i)
   }
-
   const cryptoKey = await crypto.subtle.importKey(
     "pkcs8",
     binaryDer,
@@ -167,18 +191,10 @@ async function sign(input: string, key: string) {
     false,
     ["sign"]
   )
-
   const signature = await crypto.subtle.sign(
     "RSASSA-PKCS1-v1_5",
     cryptoKey,
     new TextEncoder().encode(input)
   )
-
-  const signatureB64 = b64_from_arraybuffer(signature)
-  return signatureB64
-}
-
-function b64_from_arraybuffer(buffer: ArrayBuffer) {
-  const binary = String.fromCharCode(...new Uint8Array(buffer))
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+  return btoa(String.fromCharCode(...new Uint8Array(signature))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
 }

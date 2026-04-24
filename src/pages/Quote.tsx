@@ -907,8 +907,10 @@ export default function Quote() {
                           company_name: user?.company || '정보 없음',
                           business_number: user?.businessNumber || '',
                           orderer_name: user?.name || '',
+                          user_id: user?.id,
                           ...(editingOrderId ? {} : { status: '주문 요청' })
                         };
+
 
                         let error;
                         if (editingOrderId) {
@@ -948,8 +950,10 @@ export default function Quote() {
                           company_name: user?.company || '정보 없음',
                           business_number: user?.businessNumber || '',
                           orderer_name: user?.name || '',
+                          user_id: user?.id,
                           status: '주문 요청'
                         };
+
 
                         const { error: insertError } = await supabase
                           .from('order_cleansing_shine')

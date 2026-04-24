@@ -220,27 +220,26 @@ export default function Admin() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50/50 border-b border-slate-100">
-                  <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">주문 ID</th>
-                  <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">파트너사 / 주문자</th>
+                  <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">주문 날짜</th>
+                  <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">주문 업체</th>
                   <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">제품 규격</th>
                   <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">가공/타입</th>
                   <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">수량/포장</th>
-                  <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center">공정 상태</th>
-                  <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">변경</th>
+                  <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right uppercase">진행 상태</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {isOrdersLoading ? (
                   Array(5).fill(0).map((_, i) => (
                     <tr key={i} className="animate-pulse">
-                      <td colSpan={7} className="px-6 py-12 h-16 bg-slate-50/10">
+                      <td colSpan={6} className="px-6 py-12 h-16 bg-slate-50/10">
                          <div className="h-4 bg-slate-100 rounded-full w-3/4 mx-auto"></div>
                       </td>
                     </tr>
                   ))
                 ) : filteredOrders.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-20 text-center text-slate-400 font-medium">
+                    <td colSpan={6} className="px-6 py-20 text-center text-slate-400 font-medium">
                       검색 조건에 맞는 주문 내역이 없습니다.
                     </td>
                   </tr>
@@ -248,32 +247,28 @@ export default function Admin() {
                   filteredOrders.map((order) => (
                     <tr key={`${order.product_category}-${order.id}`} className="hover:bg-slate-50/80 transition-colors group">
                       <td className="px-6 py-5">
-                        <span className="text-xs font-bold text-slate-400 group-hover:text-brand-600 transition-colors">#ORD-{order.id.toString().padStart(5, '0')}</span>
-                      </td>
-                      <td className="px-6 py-5">
                         <div className="flex flex-col">
-                          <span className="text-sm font-bold text-slate-900">{order.company_name}</span>
-                          <div className="flex items-center space-x-2 mt-0.5">
-                            <span className="text-[10px] font-medium text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">
-                              {order.business_number || '-'}
-                            </span>
-                            <span className="text-[10px] text-slate-300">|</span>
-                            <span className="text-[10px] text-slate-500 font-medium">{order.orderer_name}</span>
-                          </div>
+                          <span className="text-[11px] font-bold text-slate-600">
+                            {`${new Date(order.created_at).getMonth() + 1}.${new Date(order.created_at).getDate()}`}
+                          </span>
                         </div>
                       </td>
                       <td className="px-6 py-5">
                         <div className="flex flex-col">
-                          <span className={cn(
-                            "text-[10px] font-bold px-1.5 py-0.5 rounded border self-start mb-1.5",
-                            order.product_category === '롤러' ? "text-blue-600 bg-blue-50 border-blue-100" : "text-pink-600 bg-pink-50 border-pink-100"
-                          )}>
-                            {order.product_category}
-                          </span>
-                          <span className="text-[11px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
+                          <span className="text-sm font-bold text-slate-900">{order.company_name}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-5">
+                        <div className="flex flex-col">
+                          {order.product_category === '클린싱' && (
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded border border-pink-100 text-pink-600 bg-pink-50 self-start mb-1.5">
+                              클린싱
+                            </span>
+                          )}
+                          <span className="text-[11px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 shadow-sm self-start">
                             {order.product_category === '롤러' 
                               ? `${order.outer_diameter}*${order.inner_diameter}*${order.sponge_length}*${order.total_length}`
-                              : order.type === '원형' ? `지름:${order.diameter} / 두께:${order.thickness}` : `가로:${order.width}*세로:${order.height} / 두께:${order.thickness}`
+                              : order.type === '원형' ? `${order.diameter}*${order.thickness}` : `${order.width}*${order.height}*${order.thickness}`
                             }
                           </span>
                         </div>
@@ -303,9 +298,6 @@ export default function Admin() {
                             <span className="text-[9px] font-bold text-pink-600 bg-pink-50 px-1.5 py-0.5 rounded-md mt-1 border border-pink-100">개별포장</span>
                           )}
                         </div>
-                      </td>
-                      <td className="px-6 py-5 text-center">
-                        <StatusBadge status={order.status || '주문 요청'} />
                       </td>
                       <td className="px-6 py-5 text-right">
                         <select 

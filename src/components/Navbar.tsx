@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, Globe, Zap, LogOut, Settings as SettingsIcon, User, Building2, Mail, ChevronDown, FileText, ShieldCheck, ArrowLeft } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { Menu, X, Globe, Zap, LogOut, Settings as SettingsIcon, User, ChevronDown, FileText, ShieldCheck, ArrowLeft } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -30,261 +29,188 @@ export default function Navbar() {
   ];
 
   return (
-    <nav className={cn(
-      "fixed top-0 w-full z-50 transition-all duration-300",
-      scrolled ? "bg-white/90 backdrop-blur-md shadow-sm py-3" : "bg-transparent py-5"
-    )}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center">
-          
-          {/* Mobile Left: Hamburger (Reordered: Menu first) */}
-          <div className="md:hidden flex items-center">
-            <button
-              onClick={() => setIsOpen(!isOpen)}
-              className={cn(
-                "p-2 rounded-md transition-colors",
-                scrolled ? "text-slate-600 hover:bg-slate-100" : "text-white hover:bg-white/10"
+    <>
+      <nav className={cn(
+        "fixed top-0 w-full z-[100] transition-all duration-300",
+        scrolled ? "bg-white shadow-md py-2" : "bg-white/80 backdrop-blur-md py-3 border-b border-slate-100"
+      )}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-14">
+            
+            {/* LEFT GROUP: Back + Burger + Logo (Always Together) */}
+            <div className="flex items-center space-x-3 shrink-0">
+              {location.pathname !== '/' && (
+                <button
+                  onClick={() => navigate(-1)}
+                  className="p-2.5 bg-slate-900 text-white rounded-xl shadow-lg active:scale-90 transition-all"
+                  aria-label="뒤로 가기"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
               )}
-            >
-              {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
-          </div>
-
-          {/* Logo & Back Button Group */}
-          <div className="flex items-center space-x-2">
-            {/* Back Button (Only show if not on home) */}
-            {location.pathname !== '/' && (
               <button
-                onClick={() => navigate('/')}
-                className={cn(
-                  "p-2 rounded-xl transition-all flex items-center justify-center group",
-                  scrolled ? "bg-slate-100 text-slate-600 hover:bg-slate-200" : "bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm"
-                )}
-                title="홈으로 가기"
+                onClick={() => setIsOpen(!isOpen)}
+                className="p-2.5 bg-slate-900 text-white rounded-xl shadow-lg active:scale-90 transition-all"
+                aria-label="메뉴 열기"
               >
-                <ArrowLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
+                {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </button>
-            )}
 
-            <Link to="/" className="flex items-center space-x-2 bg-slate-900/10 hover:bg-slate-900/20 px-3 py-1.5 rounded-xl transition-colors backdrop-blur-sm">
-              <div className="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center shrink-0">
-                <Zap className="text-white w-5 h-5" />
-              </div>
-              <span className={cn(
-                "text-lg font-bold tracking-tighter",
-                scrolled ? "text-slate-900" : "text-slate-100"
-              )}>
-                SHINE<span className="text-brand-500 underline underline-offset-4 decoration-2">TECH</span>
-              </span>
-            </Link>
-          </div>
-
-          {/* Desktop Nav */}
-          <div className="hidden md:flex items-center space-x-8">
-            {navLinks.map((link, idx) => (
-              <Link
-                key={idx}
-                to={link.path}
-                className={cn(
-                  "text-sm font-medium transition-colors hover:text-brand-500",
-                  location.pathname === link.path 
-                    ? "text-brand-600" 
-                    : scrolled ? "text-slate-600" : "text-white/90"
-                )}
-              >
-                {link.name}
+              <Link to="/" className="flex items-center space-x-2 group">
+                <div className="w-9 h-9 bg-brand-600 rounded-xl flex items-center justify-center shadow-lg shadow-brand-500/30 group-hover:rotate-12 transition-transform">
+                  <Zap className="text-white w-5 h-5 fill-current" />
+                </div>
+                <span className="text-xl font-black tracking-tighter text-slate-900 hidden sm:block">
+                  SHINE<span className="text-brand-600">TECH</span>
+                </span>
               </Link>
-            ))}
-            <button 
-              onClick={() => setLanguage(language === 'en' ? 'ko' : 'en')}
-              className="flex items-center space-x-1 text-sm font-medium text-brand-600 bg-brand-50 px-3 py-1.5 rounded-full hover:bg-brand-100 transition-colors"
-            >
-              <Globe className="w-4 h-4" />
-              <span>{language === 'en' ? 'KO' : 'EN'}</span>
-            </button>
-          </div>
+            </div>
 
-          {/* User Account/Settings Section */}
-          <div className="flex items-center space-x-2">
-            <button 
-              onClick={() => setLanguage(language === 'en' ? 'ko' : 'en')}
-              className={cn(
-                "md:hidden p-2 rounded-xl transition-all",
-                scrolled ? "text-slate-600 hover:bg-slate-100" : "text-white hover:bg-white/10"
-              )}
-            >
-              <Globe className="w-5 h-5" />
-            </button>
-
-            <div className="relative">
-              <button 
-                onClick={() => setIsProfileOpen(!isProfileOpen)}
-                className={cn(
-                  "flex items-center space-x-2 px-3 py-1.5 rounded-full transition-all border shadow-sm",
-                  scrolled 
-                    ? "bg-white border-slate-200 text-slate-700 hover:bg-slate-50" 
-                    : "bg-white/10 border-white/20 text-white hover:bg-white/20 backdrop-blur-md"
-                )}
-              >
-                <SettingsIcon className={cn("w-4 h-4", !scrolled && "text-brand-400")} />
-                <span className="hidden sm:inline text-[10px] font-bold uppercase tracking-wider">Account</span>
-                <ChevronDown className={cn("w-3 h-3 transition-transform opacity-50", isProfileOpen && "rotate-180")} />
-              </button>
-
-              <AnimatePresence>
-                {isProfileOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    className="absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden z-[100]"
+            {/* MIDDLE/RIGHT GROUP: All Other Menus (Together in one line) */}
+            <div className="flex items-center space-x-4 ml-4">
+              
+              {/* Horizontal Menu Links (Visible if space permits) */}
+              <div className="hidden md:flex items-center space-x-6 mr-2">
+                {navLinks.map((link, idx) => (
+                  <Link
+                    key={idx}
+                    to={link.path}
+                    className={cn(
+                      "text-[13px] font-black transition-all hover:text-brand-600",
+                      location.pathname === link.path ? "text-brand-600" : "text-slate-600"
+                    )}
                   >
-                    <div className="p-5 border-b border-slate-50 bg-slate-50/50">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-3">회원 정보</p>
-                      <div className="space-y-3">
-                        <div className="flex items-center space-x-3 text-slate-600">
-                          <User className="w-4 h-4 text-brand-500" />
-                          <span className="text-sm font-semibold">{user?.name || (isLoggedIn ? '사용자' : '로그인 필요')}</span>
+                    {link.name}
+                  </Link>
+                ))}
+              </div>
+
+              {/* Language + Account Settings (Always Together) */}
+              <div className="flex items-center space-x-2">
+                <button 
+                  onClick={() => setLanguage(language === 'en' ? 'ko' : 'en')}
+                  className="hidden xs:flex text-[10px] font-black bg-brand-50 text-brand-600 px-3 py-1.5 rounded-lg border border-brand-100 uppercase"
+                >
+                  {language === 'en' ? 'KO' : 'EN'}
+                </button>
+
+                <div className="relative">
+                  <button 
+                    onClick={() => setIsProfileOpen(!isProfileOpen)}
+                    className={cn(
+                      "flex items-center justify-center w-11 h-11 rounded-2xl transition-all shadow-sm border",
+                      isProfileOpen ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-900 border-slate-200"
+                    )}
+                  >
+                    <SettingsIcon className={cn("w-5 h-5", isProfileOpen && "rotate-90 transition-transform")} />
+                  </button>
+
+                  {isProfileOpen && (
+                    <div className="absolute right-0 mt-3 w-64 bg-white rounded-[24px] shadow-2xl border border-slate-100 overflow-hidden z-[110]">
+                      <div className="p-5 bg-slate-50/50 border-b border-slate-100">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">My Account</p>
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 bg-brand-600 rounded-xl flex items-center justify-center text-white font-bold">
+                            {user?.name?.[0]}
+                          </div>
+                          <div>
+                            <p className="text-sm font-black text-slate-900">{user?.name} 님</p>
+                            <p className="text-[10px] text-slate-500 font-medium">{user?.company || '개인 파트너'}</p>
+                          </div>
                         </div>
-                        {isLoggedIn && (
-                          <>
-                            <div className="flex items-center space-x-3 text-slate-500">
-                              <Building2 className="w-4 h-4" />
-                              <span className="text-xs truncate">{user?.company || '개인 파트너'}</span>
-                            </div>
-                            <div className="flex items-center space-x-3 text-slate-500">
-                              <ShieldCheck className="w-4 h-4" />
-                              <span className="text-[10px] uppercase font-bold tracking-tight bg-slate-100 px-1.5 py-0.5 rounded">{user?.role || 'user'}</span>
-                            </div>
-                          </>
+                      </div>
+                      <div className="p-2">
+                        <Link to="/quote" onClick={() => setIsProfileOpen(false)} className="flex items-center space-x-3 w-full px-4 py-3 text-sm font-bold text-slate-600 hover:bg-brand-50 rounded-xl transition-colors">
+                          <FileText className="w-4 h-4" />
+                          <span>내 주문 조회</span>
+                        </Link>
+                        {(user?.role === 'admin' || user?.company === '샤인테크' || user?.businessNumber === '108-12-67235') && (
+                          <Link to="/admin" onClick={() => setIsProfileOpen(false)} className="flex items-center space-x-3 w-full px-4 py-3 text-sm font-bold text-brand-600 bg-brand-50 rounded-xl transition-colors">
+                            <ShieldCheck className="w-4 h-4" />
+                            <span>관리자 대시보드</span>
+                          </Link>
                         )}
+                        <div className="h-px bg-slate-50 my-2 mx-2" />
+                        <button onClick={() => { if(confirm('로그아웃?')){logout(); setIsProfileOpen(false); navigate('/');} }} className="flex items-center space-x-3 w-full px-4 py-3 text-sm font-bold text-red-500 hover:bg-red-50 rounded-xl transition-colors">
+                          <LogOut className="w-4 h-4" />
+                          <span>로그아웃</span>
+                        </button>
                       </div>
                     </div>
-
-                    <div className="p-2">
-                      {isLoggedIn ? (
-                        <>
-                          <Link 
-                            to="/profile" 
-                            onClick={() => setIsProfileOpen(false)}
-                            className="flex items-center space-x-3 w-full px-4 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-brand-600 rounded-xl transition-colors"
-                          >
-                            <SettingsIcon className="w-4 h-4" />
-                            <span>내 정보 수정</span>
-                          </Link>
-
-                          <Link 
-                            to="/quote" 
-                            onClick={() => setIsProfileOpen(false)}
-                            className="flex items-center space-x-3 w-full px-4 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-brand-600 rounded-xl transition-colors"
-                          >
-                            <Zap className="w-4 h-4" />
-                            <span>주문 대시보드</span>
-                          </Link>
-
-                          {(user?.role === 'admin' || user?.company === '샤인테크' || user?.businessNumber === '108-12-67235') && (
-                            <Link 
-                              to="/admin" 
-                              onClick={() => setIsProfileOpen(false)}
-                              className="flex items-center space-x-3 w-full px-4 py-3 text-sm font-bold text-indigo-600 bg-indigo-50/50 hover:bg-indigo-50 rounded-xl transition-colors"
-                            >
-                              <ShieldCheck className="w-4 h-4" />
-                              <span>관리자 전용 메뉴</span>
-                            </Link>
-                          )}
-
-                          <div className="h-px bg-slate-50 my-2 mx-2" />
-                          
-                          <button 
-                            onClick={() => {
-                              if (confirm('로그아웃 하시겠습니까?')) {
-                                logout();
-                                setIsProfileOpen(false);
-                                navigate('/');
-                              }
-                            }}
-                            className="flex items-center space-x-3 w-full px-4 py-3 text-sm font-medium text-red-500 hover:bg-red-50 rounded-xl transition-colors"
-                          >
-                            <LogOut className="w-4 h-4" />
-                            <span>로그아웃</span>
-                          </button>
-                        </>
-                      ) : (
-                        <div className="p-1 space-y-1">
-                          <Link 
-                            to="/login"
-                            onClick={() => setIsProfileOpen(false)}
-                            className="flex items-center justify-center w-full py-3 text-sm font-bold text-white bg-brand-600 rounded-xl shadow-lg shadow-brand-200"
-                          >
-                            로그인
-                          </Link>
-                          <Link 
-                            to="/signup"
-                            onClick={() => setIsProfileOpen(false)}
-                            className="flex items-center justify-center w-full py-3 text-sm font-bold text-slate-600 hover:bg-slate-50 rounded-xl"
-                          >
-                            회원가입
-                          </Link>
-                        </div>
-                      )}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                  )}
+                </div>
+              </div>
             </div>
+
           </div>
         </div>
-      </div>
+      </nav>
 
-      {/* Mobile Side Menu (Simplified) */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="md:hidden bg-white border-b border-slate-100 overflow-hidden shadow-xl"
-          >
-            <div className="px-4 py-6 space-y-2">
-              <p className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">Navigation</p>
-              {navLinks.map((link, idx) => (
-                <Link
-                  key={idx}
-                  to={link.path}
-                  onClick={() => setIsOpen(false)}
-                  className={cn(
-                    "block px-3 py-4 text-base font-semibold rounded-xl transition-all",
-                    location.pathname === link.path 
-                      ? "text-brand-600 bg-brand-50" 
-                      : "text-slate-700 hover:bg-slate-50"
-                  )}
-                >
-                  {link.name}
-                </Link>
-              ))}
-              
-              {!isLoggedIn && (
-                <div className="pt-6 mt-6 border-t border-slate-100 grid grid-cols-2 gap-3">
-                  <Link
-                    to="/login"
-                    onClick={() => setIsOpen(false)}
-                    className="flex justify-center py-4 text-sm font-bold text-slate-600 bg-slate-50 rounded-xl"
-                  >
-                   로그인
-                  </Link>
-                  <Link
-                    to="/signup"
-                    onClick={() => setIsOpen(false)}
-                    className="flex justify-center py-4 text-sm font-bold text-white bg-brand-600 rounded-xl"
-                  >
-                    회원가입
-                  </Link>
+      {/* MOBILE DRAWER MENU */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-white z-[999999] flex flex-col overflow-y-auto"
+          style={{ height: '100dvh' }}
+        >
+          <div className="flex justify-between items-center px-6 h-20 border-b border-slate-50">
+            <span className="text-xl font-black text-slate-400 tracking-widest">MENU</span>
+            <button 
+              onClick={() => setIsOpen(false)}
+              className="p-3 bg-slate-900 text-white rounded-2xl shadow-xl active:scale-90 transition-transform"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+
+          <div className="px-6 py-8 space-y-10 pb-20">
+            {/* Language Selection */}
+            <div className="space-y-4">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Language</p>
+              <button 
+                onClick={() => setLanguage(language === 'en' ? 'ko' : 'en')}
+                className="w-full flex items-center justify-between p-5 bg-slate-50 border border-slate-100 rounded-[24px]"
+              >
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-white rounded-2xl shadow-sm flex items-center justify-center border border-slate-100">
+                    <Globe className="w-6 h-6 text-brand-600" />
+                  </div>
+                  <div>
+                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-tight">Active Mode</span>
+                    <span className="text-lg font-black text-slate-700">{language === 'en' ? 'English' : '한국어'}</span>
+                  </div>
                 </div>
-              )}
+                <div className="bg-brand-600 px-4 py-2 rounded-xl text-xs font-black text-white shadow-lg">
+                  {language === 'en' ? 'KO' : 'EN'}
+                </div>
+              </button>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </nav>
+
+            {/* Navigation Links */}
+            <div className="space-y-4">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Main Menu</p>
+              <div className="grid grid-cols-1 gap-2">
+                {navLinks.map((link, idx) => (
+                  <Link
+                    key={idx}
+                    to={link.path}
+                    onClick={() => setIsOpen(false)}
+                    className={cn(
+                      "flex items-center p-5 text-xl font-black rounded-[24px] transition-all",
+                      location.pathname === link.path 
+                        ? "bg-brand-600 text-white shadow-2xl shadow-brand-200" 
+                        : "bg-slate-50 text-slate-700 active:bg-slate-100"
+                    )}
+                  >
+                    {link.name}
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            {/* User Account Section Removed per user request */}
+          </div>
+        </div>
+      )}
+    </>
   );
 }
