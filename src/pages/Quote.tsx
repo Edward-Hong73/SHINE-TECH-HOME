@@ -98,6 +98,19 @@ export default function Quote() {
     }
 
     try {
+      const selectedOrdersData = selectedOrders.map(id => pastOrders.find(o => o.id === id));
+      
+      // 생산 단계 이상인 주문이 있는지 체크
+      const nonCancellableOrders = selectedOrdersData.filter(o => 
+        o && !['주문 요청', '주문접수'].includes(o.status)
+      );
+
+      if (nonCancellableOrders.length > 0) {
+        const orderIds = nonCancellableOrders.map(o => o.id).join(', ');
+        alert(`취소 불가: 주문번호 [${orderIds}]번은 이미 생산 단계에 진입하여 취소할 수 없습니다. 담당자에게 문의해주세요.`);
+        return;
+      }
+
       const deletePromises = selectedOrders.map(async (orderId) => {
         const order = pastOrders.find(o => o.id === orderId);
         if (!order) return;
@@ -547,12 +560,12 @@ export default function Quote() {
                     <div>
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">스폰지 형태</label>
                       <div className="flex space-x-2">
-                        {['원형', '사각원형'].map((type) => (
-                          <button 
+                        {['원형', '타원형'].map((type) => (
+                          <button
                             key={type}
                             onClick={() => {
-                              const defaults = type === '원형' 
-                                ? { diameter: '83', thickness: '10' } 
+                              const defaults = type === '원형'
+                                ? { diameter: '83', thickness: '10' }
                                 : { width: '110', height: '90', thickness: '12' };
                               setCosmeticSettings({...cosmeticSettings, type, ...defaults});
                             }}

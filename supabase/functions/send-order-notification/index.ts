@@ -16,17 +16,31 @@ serve(async (req) => {
     const payload = await req.json()
     console.log('Webhook 수신 전체 데이터:', JSON.stringify(payload, null, 2))
 
+    const eventType: string = payload.type || 'INSERT'
     const orderData = payload.record
     const tableName = payload.table || '';
     const isRoller = tableName.includes('order_roller_shine')
-    
+
     const company = orderData.company_name || orderData.company || '알 수 없는 업체';
-    const specs = isRoller 
+    const specs = isRoller
       ? `규격: ${orderData.outer_diameter}*${orderData.inner_diameter}*${orderData.sponge_length}*${orderData.total_length}`
       : `제품: ${orderData.type || '클린싱'}`;
-    
-    const orderTitle = `[신규주문] ${company}`
-    const orderBody = `주문 ID: #ORD-${orderData.id}\n${specs}\n수량: ${orderData.quantity}EA`
+
+    const titlePrefix =
+      eventType === 'DELETE' ? '[주문취소]' :
+      eventType === 'UPDATE' ? '[주문변경]' :
+      '[신규주문]'
+
+    const orderTitle = `${titlePrefix} ${company}`
+
+    let orderBody = `주문 ID: #ORD-${orderData.id}\n${specs}\n수량: ${orderData.quantity}EA`
+    if (eventType === 'UPDATE' && payload.old_record) {
+      const oldStatus = payload.old_record.status || ''
+      const newStatus = orderData.status || ''
+      if (oldStatus !== newStatus) {
+        orderBody += `\n상태 변경: ${oldStatus} → ${newStatus}`
+      }
+    }
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',

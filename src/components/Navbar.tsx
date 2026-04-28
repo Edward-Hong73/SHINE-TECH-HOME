@@ -120,6 +120,10 @@ export default function Navbar() {
                         </div>
                       </div>
                       <div className="p-2">
+                        <Link to="/profile" onClick={() => setIsProfileOpen(false)} className="flex items-center space-x-3 w-full px-4 py-3 text-sm font-bold text-slate-600 hover:bg-brand-50 rounded-xl transition-colors">
+                          <User className="w-4 h-4" />
+                          <span>내 정보관리</span>
+                        </Link>
                         <Link to="/quote" onClick={() => setIsProfileOpen(false)} className="flex items-center space-x-3 w-full px-4 py-3 text-sm font-bold text-slate-600 hover:bg-brand-50 rounded-xl transition-colors">
                           <FileText className="w-4 h-4" />
                           <span>내 주문 조회</span>

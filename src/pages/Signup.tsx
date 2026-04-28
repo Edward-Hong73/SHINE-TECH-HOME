@@ -1,18 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate, Link } from 'react-router-dom';
-import { 
-  User, 
-  Mail, 
-  Lock, 
-  Phone, 
-  Building2, 
-  FileText, 
-  Briefcase, 
-  ArrowRight, 
+import {
+  User,
+  Mail,
+  Lock,
+  Phone,
+  Building2,
+  FileText,
+  Briefcase,
+  ArrowRight,
   Zap,
   ChevronLeft,
-  ChevronDown
+  ChevronDown,
+  Layers
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { cn } from '../lib/utils';
@@ -34,7 +35,8 @@ export default function Signup() {
     businessNumber: '',
     rank: '',
     jobTitle: '',
-    companyPhone: ''
+    companyPhone: '',
+    mainCategory: '롤러' as '롤러' | '클린싱'
   });
 
   useEffect(() => {
@@ -130,14 +132,16 @@ export default function Signup() {
         ...formData,
         companyName: selectedCompany.company_name,
         businessNumber: selectedCompany.business_number,
-        companyPhone: selectedCompany.company_phone || ''
+        companyPhone: selectedCompany.company_phone || '',
+        mainCategory: (selectedCompany.main_category as '롤러' | '클린싱') || '롤러'
       });
     } else {
       setFormData({
         ...formData,
         companyName: '',
         businessNumber: '',
-        companyPhone: ''
+        companyPhone: '',
+        mainCategory: '롤러'
       });
     }
   };
@@ -153,22 +157,28 @@ export default function Signup() {
       return;
     }
     
-    // 1. 직접 입력 모드일 때만 새로운 고객사 등록
+    // 1. 고객사 등록 또는 main_category 업데이트
     if (isManualInput) {
       const { error: companyError } = await supabase
         .from('companies_shine')
         .insert([
-          { 
-            company_name: formData.companyName, 
-            business_number: formData.businessNumber, 
-            company_phone: formData.companyPhone 
+          {
+            company_name: formData.companyName,
+            business_number: formData.businessNumber,
+            company_phone: formData.companyPhone,
+            main_category: formData.mainCategory
           }
         ]);
 
-      if (companyError && companyError.code !== '23505') { // 중복은 허용 (이미 등록되었을 수도 있음)
+      if (companyError && companyError.code !== '23505') {
         alert('회사 정보 저장 중 오류가 발생했습니다: ' + companyError.message);
         return;
       }
+    } else {
+      await supabase
+        .from('companies_shine')
+        .update({ main_category: formData.mainCategory })
+        .eq('business_number', formData.businessNumber);
     }
 
     // 2. 회원 개인 정보 저장
@@ -409,11 +419,26 @@ export default function Signup() {
                     />
                   </div>
                 </div>
-                <div className="md:col-span-2 space-y-1.5">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1">주요 취급 품목</label>
+                  <div className="relative">
+                    <Layers className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4 z-10" />
+                    <select
+                      value={formData.mainCategory}
+                      onChange={(e) => setFormData({ ...formData, mainCategory: e.target.value as '롤러' | '클린싱' })}
+                      className="w-full pl-11 pr-10 py-3 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/50 transition-all appearance-none cursor-pointer"
+                    >
+                      <option value="롤러" className="bg-slate-900">롤러</option>
+                      <option value="클린싱" className="bg-slate-900">클린싱</option>
+                    </select>
+                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1">회사 연락처</label>
                   <div className="relative">
                     <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
-                    <input 
+                    <input
                       type="tel" name="companyPhone" required placeholder="02-0000-0000"
                       value={formData.companyPhone} onChange={handleChange}
                       className="w-full pl-11 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/50 transition-all"
