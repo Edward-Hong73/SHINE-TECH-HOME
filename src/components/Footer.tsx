@@ -21,7 +21,7 @@ export default function Footer() {
               {t.footer.desc}
             </p>
           </div>
-          
+
           <div>
             <h4 className="text-sm font-semibold uppercase tracking-wider mb-6">{t.footer.solutions}</h4>
             <ul className="space-y-4 text-sm text-slate-400">
@@ -51,16 +51,16 @@ export default function Footer() {
               </li>
               <li className="flex items-center space-x-3">
                 <Phone className="w-5 h-5 text-brand-500 shrink-0" />
-                <span>+82 2-1234-5678</span>
+                <span>{t.footer.phoneHours}</span>
               </li>
               <li className="flex items-center space-x-3">
                 <Mail className="w-5 h-5 text-brand-500 shrink-0" />
-                <span>sales@shinetech.com</span>
+                <span>magic3973@gmail.com</span>
               </li>
             </ul>
           </div>
         </div>
-        
+
         <div className="border-t border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-slate-500">
           <p>© 2026 SHINE TECH Global. {t.footer.rights}</p>
           <div className="flex space-x-6 mt-4 md:mt-0">

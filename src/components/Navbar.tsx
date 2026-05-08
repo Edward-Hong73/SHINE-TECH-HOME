@@ -107,48 +107,67 @@ export default function Navbar() {
 
                   {isProfileOpen && (
                     <div className="absolute right-0 mt-3 w-64 bg-white rounded-[24px] shadow-2xl border border-slate-100 overflow-hidden z-[110]">
-                      <div className="p-5 bg-slate-50/50 border-b border-slate-100">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">My Account</p>
-                        <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 bg-brand-600 rounded-xl flex items-center justify-center text-white font-bold">
-                            {user?.name?.[0]}
+                      {isLoggedIn ? (
+                        <>
+                          <div className="p-5 bg-slate-50/50 border-b border-slate-100">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">My Account</p>
+                            <div className="flex items-center space-x-3">
+                              <div className="w-10 h-10 bg-brand-600 rounded-xl flex items-center justify-center text-white font-bold">
+                                {user?.name?.[0]}
+                              </div>
+                              <div>
+                                <p className="text-sm font-black text-slate-900">{user?.name} 님</p>
+                                <p className="text-[10px] text-slate-500 font-medium">{user?.company || '개인 파트너'}</p>
+                              </div>
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-sm font-black text-slate-900">{user?.name} 님</p>
-                            <p className="text-[10px] text-slate-500 font-medium">{user?.company || '개인 파트너'}</p>
+                          <div className="p-2">
+                            <Link to="/profile" onClick={() => setIsProfileOpen(false)} className="flex items-center space-x-3 w-full px-4 py-3 text-sm font-bold text-slate-600 hover:bg-brand-50 rounded-xl transition-colors">
+                              <User className="w-4 h-4" />
+                              <span>내 정보관리</span>
+                            </Link>
+                            <Link to="/quote" onClick={() => setIsProfileOpen(false)} className="flex items-center space-x-3 w-full px-4 py-3 text-sm font-bold text-slate-600 hover:bg-brand-50 rounded-xl transition-colors">
+                              <FileText className="w-4 h-4" />
+                              <span>내 주문 조회</span>
+                            </Link>
+                            {(user?.role === 'admin' || user?.company === '샤인테크' || user?.businessNumber === '108-12-67235') && (
+                              <Link to="/admin" onClick={() => setIsProfileOpen(false)} className="flex items-center space-x-3 w-full px-4 py-3 text-sm font-bold text-brand-600 bg-brand-50 rounded-xl transition-colors">
+                                <ShieldCheck className="w-4 h-4" />
+                                <span>관리자 대시보드</span>
+                              </Link>
+                            )}
+                            <div className="h-px bg-slate-50 my-2 mx-2" />
+                            <button
+                              onClick={async () => {
+                                if(confirm('정말 로그아웃 하시겠습니까?')){
+                                  await logout();
+                                  setIsProfileOpen(false);
+                                  navigate('/login');
+                                }
+                              }}
+                              className="flex items-center space-x-3 w-full px-4 py-3 text-sm font-bold text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                            >
+                              <LogOut className="w-4 h-4" />
+                              <span>로그아웃</span>
+                            </button>
                           </div>
-                        </div>
-                      </div>
-                      <div className="p-2">
-                        <Link to="/profile" onClick={() => setIsProfileOpen(false)} className="flex items-center space-x-3 w-full px-4 py-3 text-sm font-bold text-slate-600 hover:bg-brand-50 rounded-xl transition-colors">
-                          <User className="w-4 h-4" />
-                          <span>내 정보관리</span>
-                        </Link>
-                        <Link to="/quote" onClick={() => setIsProfileOpen(false)} className="flex items-center space-x-3 w-full px-4 py-3 text-sm font-bold text-slate-600 hover:bg-brand-50 rounded-xl transition-colors">
-                          <FileText className="w-4 h-4" />
-                          <span>내 주문 조회</span>
-                        </Link>
-                        {(user?.role === 'admin' || user?.company === '샤인테크' || user?.businessNumber === '108-12-67235') && (
-                          <Link to="/admin" onClick={() => setIsProfileOpen(false)} className="flex items-center space-x-3 w-full px-4 py-3 text-sm font-bold text-brand-600 bg-brand-50 rounded-xl transition-colors">
-                            <ShieldCheck className="w-4 h-4" />
-                            <span>관리자 대시보드</span>
+                        </>
+                      ) : (
+                        <div className="p-2">
+                          <div className="p-5 pb-3">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">My Account</p>
+                            <p className="text-sm text-slate-500 font-medium">로그인이 필요합니다</p>
+                          </div>
+                          <Link
+                            to="/login"
+                            onClick={() => setIsProfileOpen(false)}
+                            className="flex items-center space-x-3 w-full px-4 py-3 text-sm font-bold text-brand-600 hover:bg-brand-50 rounded-xl transition-colors"
+                          >
+                            <User className="w-4 h-4" />
+                            <span>로그인</span>
                           </Link>
-                        )}
-                        <div className="h-px bg-slate-50 my-2 mx-2" />
-                        <button 
-                          onClick={async () => { 
-                            if(confirm('정말 로그아웃 하시겠습니까?')){
-                              await logout(); 
-                              setIsProfileOpen(false); 
-                              navigate('/login');
-                            } 
-                          }} 
-                          className="flex items-center space-x-3 w-full px-4 py-3 text-sm font-bold text-red-500 hover:bg-red-50 rounded-xl transition-colors"
-                        >
-                          <LogOut className="w-4 h-4" />
-                          <span>로그아웃</span>
-                        </button>
-                      </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

@@ -16,8 +16,16 @@ serve(async (req) => {
     const payload = await req.json()
     console.log('Webhook 수신 전체 데이터:', JSON.stringify(payload, null, 2))
 
-    const eventType: string = payload.type || 'INSERT'
     const orderData = payload.record
+    if (!orderData) {
+      console.error('에러: payload.record 데이터가 없습니다.');
+      return new Response(JSON.stringify({ error: 'No record data found in payload' }), { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400 
+      })
+    }
+
+    const eventType: string = payload.type || 'INSERT'
     const tableName = payload.table || '';
     const isRoller = tableName.includes('order_roller_shine')
 
@@ -57,6 +65,8 @@ serve(async (req) => {
     }
 
     const fcmTokens = tokens.map(t => t.token);
+    console.log(`${fcmTokens.length}개의 토큰을 찾았습니다.`);
+
     const accessToken = await getAccessToken({
       client_email: Deno.env.get('FIREBASE_CLIENT_EMAIL') ?? '',
       private_key: Deno.env.get('FIREBASE_PRIVATE_KEY')?.replace(/\\n/g, '\n') ?? '',
@@ -65,6 +75,7 @@ serve(async (req) => {
     const projectId = Deno.env.get('FIREBASE_PROJECT_ID')
     const results = await Promise.all(fcmTokens.map(async (token) => {
       try {
+        console.log(`알림 전송 시도 중... (Token: ${token.substring(0, 10)}...)`);
         const response = await fetch(
           `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`,
           {
@@ -89,8 +100,15 @@ serve(async (req) => {
             }),
           }
         )
-        return await response.json();
+        const result = await response.json();
+        if (response.ok) {
+          console.log(`알림 전송 성공! (Token: ${token.substring(0, 10)}...)`);
+        } else {
+          console.error(`알림 전송 실패:`, JSON.stringify(result, null, 2));
+        }
+        return result;
       } catch (e) {
+        console.error(`알림 전송 중 에러 발생 (Token: ${token.substring(0, 10)}...):`, e.message);
         return { error: e.message };
       }
     }))

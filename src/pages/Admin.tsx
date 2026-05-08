@@ -30,6 +30,7 @@ export default function Admin() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [filterCategory, setFilterCategory] = useState<'all' | '롤러' | '클린싱'>('all');
+  const [hideCompleted, setHideCompleted] = useState(false);
 
   useEffect(() => {
     if (isLoading) return;
@@ -75,16 +76,22 @@ export default function Admin() {
     }
   };
 
-  const filteredOrders = orders.filter(order => {
-    const matchesSearch = 
-      order.company_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.orderer_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.id.toString().includes(searchQuery);
-    
-    const matchesCategory = filterCategory === 'all' || order.product_category === filterCategory;
-    
-    return matchesSearch && matchesCategory;
-  });
+  const filteredOrders = orders
+    .filter(order => {
+      const matchesSearch =
+        order.company_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        order.orderer_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        order.id.toString().includes(searchQuery);
+      const matchesCategory = filterCategory === 'all' || order.product_category === filterCategory;
+      const matchesCompleted = hideCompleted ? order.status !== '출하 완료' : true;
+      return matchesSearch && matchesCategory && matchesCompleted;
+    })
+    .sort((a, b) => {
+      const aCompleted = a.status === '출하 완료' ? 1 : 0;
+      const bCompleted = b.status === '출하 완료' ? 1 : 0;
+      if (aCompleted !== bCompleted) return aCompleted - bCompleted;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
 
   const stats = {
     total: orders.length,
@@ -135,23 +142,43 @@ export default function Admin() {
 
         {/* Search & Action Bar */}
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
-          <div className="flex flex-1 items-center space-x-3">
+          <div className="flex flex-1 items-center space-x-3 flex-wrap gap-y-2">
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input 
-                type="text" 
+              <input
+                type="text"
                 placeholder="업체명, 주문자, ID 검색..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-brand-500/20 outline-none shadow-sm"
               />
             </div>
-            <button 
+            <button
               onClick={fetchOrders}
               className="p-3 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 transition-colors shadow-sm"
               title="새로고침"
             >
               <RefreshCw className={cn("w-5 h-5 text-slate-500", isOrdersLoading && "animate-spin")} />
+            </button>
+            <button
+              onClick={() => setHideCompleted(prev => !prev)}
+              className={cn(
+                "flex items-center space-x-2 px-4 py-3 rounded-2xl border text-xs font-bold transition-all shadow-sm",
+                hideCompleted
+                  ? "bg-emerald-600 border-emerald-600 text-white"
+                  : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50"
+              )}
+            >
+              <div className={cn(
+                "w-8 h-4 rounded-full relative transition-colors",
+                hideCompleted ? "bg-white/30" : "bg-slate-200"
+              )}>
+                <div className={cn(
+                  "absolute top-0.5 w-3 h-3 rounded-full bg-white shadow transition-all",
+                  hideCompleted ? "left-4" : "left-0.5"
+                )} />
+              </div>
+              <span>출하완료 숨기기</span>
             </button>
           </div>
 
@@ -245,7 +272,13 @@ export default function Admin() {
                   </tr>
                 ) : (
                   filteredOrders.map((order) => (
-                    <tr key={`${order.product_category}-${order.id}`} className="hover:bg-slate-50/80 transition-colors group">
+                    <tr
+                      key={`${order.product_category}-${order.id}`}
+                      className={cn(
+                        "hover:bg-slate-50/80 transition-colors group",
+                        order.status === '출하 완료' && "opacity-40"
+                      )}
+                    >
                       <td className="px-6 py-5">
                         <div className="flex flex-col">
                           <span className="text-[11px] font-bold text-slate-600">

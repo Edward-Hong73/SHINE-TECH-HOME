@@ -19,7 +19,7 @@ export const products: Product[] = [
     id: 'ind-01',
     category: 'Industrial',
     name: { en: 'High-Precision Roller (P-Series)', ko: '고정밀 롤러 (P-시리즈)' },
-    description: { 
+    description: {
       en: 'Designed for semiconductor and PCB cleaning processes with ultra-fine pore structure.',
       ko: '초미세 기공 구조를 갖춘 반도체 및 PCB 세정 공정용 설계.'
     },
@@ -40,7 +40,7 @@ export const products: Product[] = [
     id: 'ind-02',
     category: 'Industrial',
     name: { en: 'Industrial Sheet (S-Series)', ko: '산업용 시트 (S-시리즈)' },
-    description: { 
+    description: {
       en: 'Versatile PVA sheets for wiping and drying in cleanroom environments.',
       ko: '클린룸 환경에서의 닦기 및 건조를 위한 다목적 PVA 시트.'
     },
@@ -61,7 +61,7 @@ export const products: Product[] = [
     id: 'cos-01',
     category: 'Cosmetic',
     name: { en: 'Soft Touch Facial Sponge', ko: '소프트 터치 페이셜 스펀지' },
-    description: { 
+    description: {
       en: 'Premium cosmetic sponge for gentle exfoliation and makeup removal.',
       ko: '부드러운 각질 제거 및 메이크업 클렌징을 위한 프리미엄 코스메틱 스펀지.'
     },
@@ -83,21 +83,21 @@ export const products: Product[] = [
 export const faqs = [
   {
     question: { en: 'What is the Minimum Order Quantity (MOQ)?', ko: '최소 주문 수량(MOQ)은 얼마인가요?' },
-    answer: { 
+    answer: {
       en: 'MOQ varies by product line. For standard industrial rollers, it starts at 50 units. For cosmetic sponges, it starts at 1,000 units.',
       ko: 'MOQ는 제품 라인에 따라 다릅니다. 표준 산업용 롤러는 50개부터, 코스메틱 스펀지는 1,000개부터 시작합니다.'
     }
   },
   {
     question: { en: 'Do you provide samples for testing?', ko: '테스트용 샘플을 제공하나요?' },
-    answer: { 
+    answer: {
       en: 'Yes, we provide technical samples for R&D evaluation. Please contact our support team with your specific requirements.',
       ko: '네, R&D 평가를 위한 기술 샘플을 제공합니다. 구체적인 요구 사항을 지원 팀에 문의해 주세요.'
     }
   },
   {
     question: { en: 'Are your materials REACH compliant?', ko: '소재가 REACH 규정을 준수하나요?' },
-    answer: { 
+    answer: {
       en: 'All our PVA materials are fully REACH and RoHS compliant, ensuring safety and environmental standards.',
       ko: '당사의 모든 PVA 소재는 REACH 및 RoHS를 완벽하게 준수하여 안전 및 환경 표준을 보장합니다.'
     }
@@ -223,8 +223,8 @@ export const translations = {
       customRD: 'Custom R&D',
       globalNetwork: 'Global Network',
       careers: 'Careers',
-      address: '123 Tech Park, Innovation District, Seoul, KR',
-      phoneHours: '+82 2-1234-5678 (Mon-Fri, 9AM-6PM KST)',
+      address: '3F, Ga-dong, 109, Beomjigi-ro, Danwon-gu, Ansan-si, Gyeonggi-do, 15418, Rep. of KOREA',
+      phoneHours: '+82 70-4123-0001 (Mon-Fri, 9AM-6PM KST)',
       privacyPolicy: 'Privacy Policy',
       termsOfService: 'Terms of Service',
       cookieSettings: 'Cookie Settings'
@@ -348,8 +348,8 @@ export const translations = {
       customRD: '맞춤형 R&D',
       globalNetwork: '글로벌 네트워크',
       careers: '채용 정보',
-      address: '서울특별시 혁신 지구 테크 파크 123',
-      phoneHours: '+82 2-1234-5678 (월-금, 오전 9시-오후 6시 KST)',
+      address: '경기도 안산시 단원구 범지기로 109 가동 3층 샤인테크',
+      phoneHours: '+82 70-4123-0001 (월-금, 오전 9시-오후 6시 KST)',
       privacyPolicy: '개인정보 처리방침',
       termsOfService: '이용 약관',
       cookieSettings: '쿠키 설정'
