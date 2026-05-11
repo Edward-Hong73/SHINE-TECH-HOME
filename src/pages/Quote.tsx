@@ -225,7 +225,7 @@ export default function Quote() {
           thickness: raw.thickness?.toString() || '10'
         });
       }
-      alert('주문 내역을 수정 모드로 불러왔습니다. 수정 후 [주문하기]를 누르면 기존 내역이 업데이트됩니다.');
+      alert('주문 내역을 수정 모드로 불러왔습니다. 수정 후 [수정하기]를 누르면 기존 내역이 업데이트됩니다.');
     }
   };
 
@@ -325,9 +325,12 @@ export default function Quote() {
       };
     });
 
-    const allOrders = [...rollerOrders, ...cleansingOrders].sort((a, b) => 
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    );
+    const allOrders = [...rollerOrders, ...cleansingOrders].sort((a, b) => {
+      const aCompleted = a.status === '출하 완료' ? 1 : 0;
+      const bCompleted = b.status === '출하 완료' ? 1 : 0;
+      if (aCompleted !== bCompleted) return aCompleted - bCompleted;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
 
     setPastOrders(allOrders);
   };
@@ -532,12 +535,17 @@ export default function Quote() {
                   >
                     견적 문의
                   </button>
-                  <button 
+                  <button
                     onClick={handleOrderClick}
-                    className="py-4 bg-brand-600 text-white font-bold rounded-2xl hover:bg-brand-700 transition-all shadow-lg shadow-brand-500/20 flex items-center justify-center space-x-2 group text-sm"
+                    className={cn(
+                      "py-4 text-white font-bold rounded-2xl transition-all shadow-lg flex items-center justify-center space-x-2 group text-sm",
+                      editingOrderId
+                        ? "bg-amber-500 hover:bg-amber-600 shadow-amber-500/20"
+                        : "bg-brand-600 hover:bg-brand-700 shadow-brand-500/20"
+                    )}
                   >
                     <ShoppingCart className="w-5 h-5" />
-                    <span>주문하기</span>
+                    <span>{editingOrderId ? '수정하기' : '주문하기'}</span>
                   </button>
                 </div>
               </motion.div>
@@ -678,12 +686,17 @@ export default function Quote() {
                   >
                     견적 문의
                   </button>
-                  <button 
+                  <button
                     onClick={handleOrderClick}
-                    className="py-4 bg-pink-600 text-white font-bold rounded-2xl hover:bg-pink-700 transition-all shadow-lg shadow-pink-500/20 flex items-center justify-center space-x-2 group text-sm"
+                    className={cn(
+                      "py-4 text-white font-bold rounded-2xl transition-all shadow-lg shadow-pink-500/20 flex items-center justify-center space-x-2 group text-sm",
+                      editingOrderId
+                        ? "bg-amber-500 hover:bg-amber-600 shadow-amber-500/20"
+                        : "bg-pink-600 hover:bg-pink-700 shadow-pink-500/20"
+                    )}
                   >
                     <ShoppingCart className="w-5 h-5" />
-                    <span>주문하기</span>
+                    <span>{editingOrderId ? '수정하기' : '주문하기'}</span>
                   </button>
                 </div>
               </motion.div>
@@ -743,6 +756,7 @@ export default function Quote() {
                           <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">규격 (外*內*L*TL)</th>
                           <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center">홀/컷팅/타입</th>
                           <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center">수량</th>
+                          <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center">진행 상태</th>
                           <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">주문 일자</th>
                           <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">관리</th>
                         </tr>
@@ -751,7 +765,8 @@ export default function Quote() {
                         {pastOrders.map((order) => (
                           <tr key={order.id} className={cn(
                             "hover:bg-slate-50/80 transition-colors group",
-                            selectedOrders.includes(order.id) && "bg-brand-50/30"
+                            selectedOrders.includes(order.id) && "bg-brand-50/30",
+                            order.status === '출하 완료' && "opacity-40"
                           )}>
                             <td className="pl-8 pr-4 py-5">
                               <input 
@@ -800,6 +815,21 @@ export default function Quote() {
                             </td>
                             <td className="px-6 py-5 text-center">
                               <span className="text-sm font-bold text-slate-900">{order.raw.quantity}EA</span>
+                            </td>
+                            <td className="px-6 py-5 text-center">
+                              <span className={cn(
+                                "inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold border",
+                                {
+                                  '주문 요청':  'bg-sky-50 text-sky-600 border-sky-100',
+                                  '주문접수':   'bg-blue-50 text-blue-600 border-blue-100',
+                                  '생산':       'bg-amber-50 text-amber-600 border-amber-100',
+                                  '후처리':     'bg-purple-50 text-purple-600 border-purple-100',
+                                  '출하 대기':  'bg-indigo-50 text-indigo-600 border-indigo-100',
+                                  '출하 완료':  'bg-emerald-50 text-emerald-600 border-emerald-100',
+                                }[order.status] ?? 'bg-slate-50 text-slate-500 border-slate-100'
+                              )}>
+                                {order.status || '주문 요청'}
+                              </span>
                             </td>
                             <td className="px-6 py-5 text-right">
                               <span className="text-xs font-bold text-slate-400">{order.date}</span>
@@ -960,6 +990,7 @@ export default function Quote() {
                           outer_diameter: industrialSettings.outerDiameter === '직접입력' ? industrialSettings.customOuterDiameter : industrialSettings.outerDiameter,
                           inner_diameter: industrialSettings.innerDiameter === '직접 입력' ? industrialSettings.customInnerDiameter : industrialSettings.innerDiameter,
                           hole_processing: industrialSettings.holeProcessing === '직접 입력' ? industrialSettings.customHoleProcessing : industrialSettings.holeProcessing,
+                          cutting_type: industrialSettings.cuttingType,
                           type: industrialSettings.type,
                           total_length: industrialSettings.totalLength,
                           sponge_length: industrialSettings.spongeLength,
