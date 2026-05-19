@@ -74,7 +74,7 @@ export default function Home() {
               className="group relative h-[400px] rounded-3xl overflow-hidden shadow-2xl"
             >
               <img 
-                src="https://images.unsplash.com/photo-1565106430482-8f6e74349ca1?auto=format&fit=crop&q=80&w=1000" 
+                src="https://i.ibb.co/tw9pfYy3/pva-roller2.png" 
                 alt="Industrial PVA" 
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                 referrerPolicy="no-referrer"
@@ -96,7 +96,7 @@ export default function Home() {
               className="group relative h-[400px] rounded-3xl overflow-hidden shadow-2xl"
             >
               <img 
-                src="https://images.unsplash.com/photo-1596462502278-27bfdc4033c8?auto=format&fit=crop&q=80&w=1000" 
+                src="https://i.ibb.co/zTv1mj7Z/cleasing2.png" 
                 alt="Cosmetic PVA" 
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                 referrerPolicy="no-referrer"

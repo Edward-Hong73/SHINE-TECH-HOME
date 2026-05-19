@@ -23,7 +23,7 @@ export const products: Product[] = [
       en: 'Designed for semiconductor and PCB cleaning processes with ultra-fine pore structure.',
       ko: '초미세 기공 구조를 갖춘 반도체 및 PCB 세정 공정용 설계.'
     },
-    image: 'https://picsum.photos/seed/pva-roller/800/600',
+    image: 'https://i.ibb.co/tw9pfYy3/pva-roller2.png',
     specs: {
       outerDiameter: '50mm - 200mm',
       innerDiameter: '20mm - 100mm',
@@ -44,7 +44,7 @@ export const products: Product[] = [
       en: 'Versatile PVA sheets for wiping and drying in cleanroom environments.',
       ko: '클린룸 환경에서의 닦기 및 건조를 위한 다목적 PVA 시트.'
     },
-    image: 'https://picsum.photos/seed/pva-sheet/800/600',
+    image: 'https://i.ibb.co/XkVKDvfD/wipper2.png',
     specs: {
       outerDiameter: 'N/A',
       innerDiameter: 'N/A',
@@ -65,7 +65,7 @@ export const products: Product[] = [
       en: 'Premium cosmetic sponge for gentle exfoliation and makeup removal.',
       ko: '부드러운 각질 제거 및 메이크업 클렌징을 위한 프리미엄 코스메틱 스펀지.'
     },
-    image: 'https://picsum.photos/seed/cosmetic-sponge/800/600',
+    image: 'https://i.ibb.co/zTv1mj7Z/cleasing2.png',
     specs: {
       outerDiameter: '80mm',
       innerDiameter: 'N/A',
