@@ -55,9 +55,40 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
+    // 1. 샤인테크 직원 user_id 목록 조회 (company_name = '샤인테크')
+    const { data: adminMembers, error: adminError } = await supabaseClient
+      .from('members_shine')
+      .select('id')
+      .eq('company_name', '샤인테크')
+    console.log(`관리자 조회 결과: ${adminMembers?.length ?? 0}명`, adminError ? `에러: ${adminError.message}` : '')
+
+    const adminIds: string[] = (adminMembers || []).map((m: any) => m.id)
+
+    // 2. 주문한 고객의 user_id 조회 (business_number 기준)
+    const customerBizNum = orderData.business_number
+    let customerIds: string[] = []
+    if (customerBizNum) {
+      const { data: customerMembers } = await supabaseClient
+        .from('members_shine')
+        .select('id')
+        .eq('business_number', customerBizNum)
+      customerIds = (customerMembers || []).map((m: any) => m.id)
+    }
+
+    // 3. 대상 user_id 합산 (중복 제거)
+    const targetUserIds = Array.from(new Set([...adminIds, ...customerIds]))
+    console.log(`알림 대상: 관리자 ${adminIds.length}명, 고객 ${customerIds.length}명, 총 ${targetUserIds.length}명`)
+
+    if (targetUserIds.length === 0) {
+      console.log('알림을 보낼 대상이 없습니다.');
+      return new Response(JSON.stringify({ message: 'No target users found' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+
+    // 4. 대상 user_id의 FCM 토큰만 조회
     const { data: tokens, error: tokenError } = await supabaseClient
       .from('fcm_tokens')
       .select('token')
+      .in('user_id', targetUserIds)
 
     if (tokenError || !tokens || tokens.length === 0) {
       console.log('알림을 보낼 토큰이 없습니다.');
@@ -95,6 +126,14 @@ serve(async (req) => {
                   fcm_options: {
                     link: 'https://shine-tech-homepage.vercel.app/admin'
                   }
+                },
+                android: {
+                  priority: 'high',
+                  notification: {
+                    title: orderTitle,
+                    body: orderBody,
+                    sound: 'default',
+                  }
                 }
               },
             }),
@@ -104,7 +143,21 @@ serve(async (req) => {
         if (response.ok) {
           console.log(`알림 전송 성공! (Token: ${token.substring(0, 10)}...)`);
         } else {
-          console.error(`알림 전송 실패:`, JSON.stringify(result, null, 2));
+          const errorCode = result?.error?.details?.[0]?.errorCode || result?.error?.status;
+          console.error(`알림 전송 실패 [${errorCode}]:`, JSON.stringify(result, null, 2));
+
+          // 만료/무효 토큰은 DB에서 즉시 삭제
+          if (errorCode === 'UNREGISTERED' || errorCode === 'INVALID_ARGUMENT') {
+            const { error: deleteError } = await supabaseClient
+              .from('fcm_tokens')
+              .delete()
+              .eq('token', token);
+            if (deleteError) {
+              console.error(`만료 토큰 삭제 실패:`, deleteError.message);
+            } else {
+              console.log(`만료 토큰 DB 삭제 완료 (Token: ${token.substring(0, 10)}...)`);
+            }
+          }
         }
         return result;
       } catch (e) {

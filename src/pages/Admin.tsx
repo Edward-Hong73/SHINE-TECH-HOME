@@ -76,22 +76,26 @@ export default function Admin() {
     }
   };
 
-  const filteredOrders = orders
-    .filter(order => {
-      const matchesSearch =
-        order.company_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        order.orderer_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        order.id.toString().includes(searchQuery);
-      const matchesCategory = filterCategory === 'all' || order.product_category === filterCategory;
-      const matchesCompleted = hideCompleted ? order.status !== '출하 완료' : true;
-      return matchesSearch && matchesCategory && matchesCompleted;
-    })
-    .sort((a, b) => {
+  const filterOrder = (order: any) => {
+    const matchesSearch =
+      order.company_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      order.orderer_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      order.id.toString().includes(searchQuery);
+    const matchesCategory = filterCategory === 'all' || order.product_category === filterCategory;
+    const matchesCompleted = hideCompleted ? order.status !== '출하 완료' : true;
+    return matchesSearch && matchesCategory && matchesCompleted;
+  };
+
+  const sortOrders = (list: any[]) =>
+    list.sort((a, b) => {
       const aCompleted = a.status === '출하 완료' ? 1 : 0;
       const bCompleted = b.status === '출하 완료' ? 1 : 0;
       if (aCompleted !== bCompleted) return aCompleted - bCompleted;
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
+
+  const filteredRollerOrders = sortOrders(orders.filter(o => o.product_category === '롤러').filter(filterOrder));
+  const filteredCleansingOrders = sortOrders(orders.filter(o => o.product_category === '클린싱').filter(filterOrder));
 
   const stats = {
     total: orders.length,
@@ -241,115 +245,181 @@ export default function Admin() {
           </div>
         </div>
 
-        {/* Orders Table */}
-        <div className="bg-white rounded-[32px] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50/50 border-b border-slate-100">
-                  <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">주문 날짜</th>
-                  <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">주문 업체</th>
-                  <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">제품 규격</th>
-                  <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">가공/타입</th>
-                  <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">수량/포장</th>
-                  <th className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right uppercase">진행 상태</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {isOrdersLoading ? (
-                  Array(5).fill(0).map((_, i) => (
-                    <tr key={i} className="animate-pulse">
-                      <td colSpan={6} className="px-6 py-12 h-16 bg-slate-50/10">
-                         <div className="h-4 bg-slate-100 rounded-full w-3/4 mx-auto"></div>
-                      </td>
-                    </tr>
-                  ))
-                ) : filteredOrders.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-20 text-center text-slate-400 font-medium">
-                      검색 조건에 맞는 주문 내역이 없습니다.
-                    </td>
-                  </tr>
-                ) : (
-                  filteredOrders.map((order) => (
-                    <tr
-                      key={`${order.product_category}-${order.id}`}
-                      className={cn(
-                        "hover:bg-slate-50/80 transition-colors group",
-                        order.status === '출하 완료' && "opacity-40"
-                      )}
-                    >
-                      <td className="px-6 py-5">
-                        <div className="flex flex-col">
-                          <span className="text-[11px] font-bold text-slate-600">
-                            {`${new Date(order.created_at).getMonth() + 1}.${new Date(order.created_at).getDate()}`}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-5">
-                        <div className="flex flex-col">
-                          <span className="text-sm font-bold text-slate-900">{order.company_name}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-5">
-                        <div className="flex flex-col">
-                          {order.product_category === '클린싱' && (
-                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded border border-pink-100 text-pink-600 bg-pink-50 self-start mb-1.5">
-                              클린싱
-                            </span>
+        {/* Orders Sections */}
+        {isOrdersLoading ? (
+          <div className="bg-white rounded-[32px] shadow-xl shadow-slate-200/50 border border-slate-100 flex items-center justify-center py-24">
+            <RefreshCw className="w-8 h-8 text-brand-500 animate-spin" />
+          </div>
+        ) : (
+          <div className="space-y-8">
+            {/* 롤러 섹션 */}
+            {(filterCategory === 'all' || filterCategory === '롤러') && (
+              <div className="bg-white rounded-[32px] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
+                <div className="px-8 py-5 border-b border-slate-100 flex items-center space-x-3 bg-blue-50/40">
+                  <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+                  <h2 className="text-sm font-black text-blue-700 tracking-tight">산업용 롤러 주문</h2>
+                  <span className="ml-auto text-xs font-bold text-blue-400 bg-blue-100 px-2.5 py-0.5 rounded-full">{filteredRollerOrders.length}건</span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50/50 border-b border-slate-100">
+                        <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">주문 날짜</th>
+                        <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">주문 업체</th>
+                        <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">규격 (外*內*L*TL)</th>
+                        <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">홀/컷팅/타입</th>
+                        <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">수량/포장</th>
+                        <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">진행 상태</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {filteredRollerOrders.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="px-6 py-14 text-center text-slate-400 font-medium text-sm">
+                            해당 조건의 롤러 주문이 없습니다.
+                          </td>
+                        </tr>
+                      ) : filteredRollerOrders.map((order) => (
+                        <tr
+                          key={`roller-${order.id}`}
+                          className={cn(
+                            "transition-colors group",
+                            order.status === '주문 요청' && "bg-sky-50/60 hover:bg-sky-50",
+                            order.status !== '주문 요청' && order.status !== '출하 완료' && "hover:bg-slate-50/80",
+                            order.status === '출하 완료' && "opacity-40 hover:bg-slate-50/40"
                           )}
-                          <span className="text-[11px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 shadow-sm self-start">
-                            {order.product_category === '롤러' 
-                              ? `${order.outer_diameter}*${order.inner_diameter}*${order.sponge_length}*${order.total_length}`
-                              : order.type === '원형' ? `${order.diameter}*${order.thickness}` : `${order.width}*${order.height}*${order.thickness}`
-                            }
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-5">
-                        <div className="flex flex-col space-y-1">
-                          {order.product_category === '롤러' ? (
-                            <>
+                        >
+                          <td className="px-6 py-5">
+                            <span className="text-[11px] font-bold text-slate-600">
+                              {`${new Date(order.created_at).getMonth() + 1}.${new Date(order.created_at).getDate()}`}
+                            </span>
+                          </td>
+                          <td className="px-6 py-5">
+                            <span className="text-sm font-bold text-slate-900">{order.company_name}</span>
+                          </td>
+                          <td className="px-6 py-5">
+                            <span className="text-[11px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 shadow-sm">
+                              {`${order.outer_diameter}*${order.inner_diameter}*${order.sponge_length}*${order.total_length}`}
+                            </span>
+                          </td>
+                          <td className="px-6 py-5">
+                            <div className="flex flex-col space-y-1">
                               <div className="flex items-center space-x-1">
                                 <span className="text-[9px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100/50">홀:{order.hole_processing || '없음'}</span>
                                 <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100/50">컷팅:{order.cutting_type || '없음'}</span>
                               </div>
                               <span className="text-[10px] text-slate-500 font-medium">{order.type || '미지정'}</span>
-                            </>
-                          ) : (
-                            <div className="flex items-center space-x-1">
-                              <span className="text-[9px] font-bold text-pink-600 bg-pink-50 px-1.5 py-0.5 rounded border border-pink-100/50">색상:{order.color}</span>
-                              <span className="text-[9px] font-bold text-slate-600 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100/50">형태:{order.type}</span>
                             </div>
+                          </td>
+                          <td className="px-6 py-5">
+                            <div className="flex flex-col items-start">
+                              <span className="text-sm font-bold text-brand-600">{order.quantity}EA</span>
+                              {order.individual_packaging && (
+                                <span className="text-[9px] font-bold text-pink-600 bg-pink-50 px-1.5 py-0.5 rounded-md mt-1 border border-pink-100">개별포장</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-6 py-5 text-right">
+                            <select
+                              value={order.status || '주문 요청'}
+                              onChange={(e) => updateStatus(order.id, e.target.value, order.product_category)}
+                              className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold focus:ring-2 focus:ring-brand-500/20 outline-none cursor-pointer hover:border-slate-300 transition-colors shadow-sm"
+                            >
+                              {STATUS_STEPS.map(step => (
+                                <option key={step} value={step}>{step}</option>
+                              ))}
+                            </select>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* 클린싱 섹션 */}
+            {(filterCategory === 'all' || filterCategory === '클린싱') && (
+              <div className="bg-white rounded-[32px] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
+                <div className="px-8 py-5 border-b border-slate-100 flex items-center space-x-3 bg-pink-50/40">
+                  <div className="w-2.5 h-2.5 rounded-full bg-pink-500" />
+                  <h2 className="text-sm font-black text-pink-700 tracking-tight">미용 클린싱 주문</h2>
+                  <span className="ml-auto text-xs font-bold text-pink-400 bg-pink-100 px-2.5 py-0.5 rounded-full">{filteredCleansingOrders.length}건</span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50/50 border-b border-slate-100">
+                        <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">주문 날짜</th>
+                        <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">주문 업체</th>
+                        <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">형태</th>
+                        <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">규격 (mm)</th>
+                        <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">색상</th>
+                        <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">수량</th>
+                        <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">진행 상태</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {filteredCleansingOrders.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} className="px-6 py-14 text-center text-slate-400 font-medium text-sm">
+                            해당 조건의 클린싱 주문이 없습니다.
+                          </td>
+                        </tr>
+                      ) : filteredCleansingOrders.map((order) => (
+                        <tr
+                          key={`cleansing-${order.id}`}
+                          className={cn(
+                            "transition-colors group",
+                            order.status === '주문 요청' && "bg-pink-50/60 hover:bg-pink-50",
+                            order.status !== '주문 요청' && order.status !== '출하 완료' && "hover:bg-slate-50/80",
+                            order.status === '출하 완료' && "opacity-40 hover:bg-slate-50/40"
                           )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-5">
-                        <div className="flex flex-col items-start">
-                          <span className="text-sm font-bold text-brand-600">{order.quantity}EA</span>
-                          {order.individual_packaging && (
-                            <span className="text-[9px] font-bold text-pink-600 bg-pink-50 px-1.5 py-0.5 rounded-md mt-1 border border-pink-100">개별포장</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-5 text-right">
-                        <select 
-                          value={order.status || '주문 요청'}
-                          onChange={(e) => updateStatus(order.id, e.target.value, order.product_category)}
-                          className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold focus:ring-2 focus:ring-brand-500/20 outline-none cursor-pointer hover:border-slate-300 transition-colors shadow-sm"
                         >
-                          {STATUS_STEPS.map(step => (
-                            <option key={step} value={step}>{step}</option>
-                          ))}
-                        </select>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                          <td className="px-6 py-5">
+                            <span className="text-[11px] font-bold text-slate-600">
+                              {`${new Date(order.created_at).getMonth() + 1}.${new Date(order.created_at).getDate()}`}
+                            </span>
+                          </td>
+                          <td className="px-6 py-5">
+                            <span className="text-sm font-bold text-slate-900">{order.company_name}</span>
+                          </td>
+                          <td className="px-6 py-5">
+                            <span className="inline-flex items-center text-[10px] font-bold text-pink-600 bg-pink-50 px-2 py-0.5 rounded border border-pink-100/50">
+                              {order.type}
+                            </span>
+                          </td>
+                          <td className="px-6 py-5">
+                            <span className="text-[11px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 shadow-sm">
+                              {order.type === '원형' ? `Ø${order.diameter} / t${order.thickness}` : `${order.width}*${order.height} / t${order.thickness}`}
+                            </span>
+                          </td>
+                          <td className="px-6 py-5">
+                            <span className="text-[9px] font-bold text-slate-600 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100/50">{order.color}</span>
+                          </td>
+                          <td className="px-6 py-5">
+                            <span className="text-sm font-bold text-pink-600">{order.quantity}EA</span>
+                          </td>
+                          <td className="px-6 py-5 text-right">
+                            <select
+                              value={order.status || '주문 요청'}
+                              onChange={(e) => updateStatus(order.id, e.target.value, order.product_category)}
+                              className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold focus:ring-2 focus:ring-pink-500/20 outline-none cursor-pointer hover:border-slate-300 transition-colors shadow-sm"
+                            >
+                              {STATUS_STEPS.map(step => (
+                                <option key={step} value={step}>{step}</option>
+                              ))}
+                            </select>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

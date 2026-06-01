@@ -12,8 +12,31 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// 배경에서 메시지를 받았을 때 처리
 messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] 배경 메시지 수신:', payload);
-  // 시스템이 자동으로 알림을 띄우므로 여기서는 로그만 확인합니다.
+
+  const title = payload.notification?.title || '샤인테크 알림';
+  const body = payload.notification?.body || '';
+  const link = payload.fcmOptions?.link || payload.data?.link || 'https://shine-tech-homepage.vercel.app/admin';
+
+  self.registration.showNotification(title, {
+    body: body,
+    icon: '/logo192.png',
+    badge: '/logo192.png',
+    data: { url: link },
+  });
+});
+
+// 알림 클릭 시 해당 링크로 이동
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url || 'https://shine-tech-homepage.vercel.app/admin';
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url === url && 'focus' in client) return client.focus();
+      }
+      if (clients.openWindow) return clients.openWindow(url);
+    })
+  );
 });

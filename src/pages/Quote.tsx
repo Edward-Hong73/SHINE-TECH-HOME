@@ -744,8 +744,8 @@ export default function Quote() {
                       <thead>
                         <tr className="bg-slate-50/50">
                           <th className="pl-8 pr-4 py-4 w-10">
-                            <input 
-                              type="checkbox" 
+                            <input
+                              type="checkbox"
                               checked={selectedOrders.length === pastOrders.length && pastOrders.length > 0}
                               onChange={handleSelectAll}
                               className="w-4 h-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500 cursor-pointer"
@@ -753,8 +753,19 @@ export default function Quote() {
                           </th>
                           <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">주문 번호</th>
                           <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">카테고리</th>
-                          <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">규격 (外*內*L*TL)</th>
-                          <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center">홀/컷팅/타입</th>
+                          {companyCategory === '롤러' ? (
+                            <>
+                              <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">규격 (外*內*L*TL)</th>
+                              <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center">홀/컷팅/타입</th>
+                            </>
+                          ) : (
+                            <>
+                              <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">형태</th>
+                              <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center">규격 (mm)</th>
+                              <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center">두께 (mm)</th>
+                              <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center">색상</th>
+                            </>
+                          )}
                           <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center">수량</th>
                           <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center">진행 상태</th>
                           <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">주문 일자</th>
@@ -769,8 +780,8 @@ export default function Quote() {
                             order.status === '출하 완료' && "opacity-40"
                           )}>
                             <td className="pl-8 pr-4 py-5">
-                              <input 
-                                type="checkbox" 
+                              <input
+                                type="checkbox"
                                 checked={selectedOrders.includes(order.id)}
                                 onChange={() => toggleSelect(order.id)}
                                 className="w-4 h-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500 cursor-pointer"
@@ -788,31 +799,49 @@ export default function Quote() {
                                 <span className="text-sm font-semibold text-slate-700">{order.type_display || order.type}</span>
                               </div>
                             </td>
-                            <td className="px-6 py-5">
-                              <span className="text-sm text-slate-600 font-medium">
-                                {order.category === '롤러' 
-                                  ? `${order.raw.outer_diameter}*${order.raw.inner_diameter}*${order.raw.sponge_length}*${order.raw.total_length}`
-                                  : order.summary.split(' (')[0]
-                                }
-                              </span>
-                            </td>
-                            <td className="px-6 py-5 text-center whitespace-nowrap min-w-[200px]">
-                              {order.category === '롤러' ? (
-                                <div className="flex items-center justify-center space-x-1.5">
-                                  <span className="inline-flex items-center text-[9px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100/50">
-                                    홀:{order.raw.hole_processing || '없음'}
+                            {companyCategory === '롤러' ? (
+                              <>
+                                <td className="px-6 py-5">
+                                  <span className="text-sm text-slate-600 font-medium">
+                                    {`${order.raw.outer_diameter}*${order.raw.inner_diameter}*${order.raw.sponge_length}*${order.raw.total_length}`}
                                   </span>
-                                  <span className="inline-flex items-center text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100/50">
-                                    컷팅:{order.raw.cutting_type || '없음'}
+                                </td>
+                                <td className="px-6 py-5 text-center whitespace-nowrap min-w-[200px]">
+                                  <div className="flex items-center justify-center space-x-1.5">
+                                    <span className="inline-flex items-center text-[9px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100/50">
+                                      홀:{order.raw.hole_processing || '없음'}
+                                    </span>
+                                    <span className="inline-flex items-center text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100/50">
+                                      컷팅:{order.raw.cutting_type || '없음'}
+                                    </span>
+                                    <span className="inline-flex items-center text-[10px] font-semibold text-slate-500 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200/50">
+                                      {order.raw.type || '미지정'}
+                                    </span>
+                                  </div>
+                                </td>
+                              </>
+                            ) : (
+                              <>
+                                <td className="px-6 py-5 text-center">
+                                  <span className="inline-flex items-center text-[10px] font-bold text-pink-600 bg-pink-50 px-2 py-0.5 rounded border border-pink-100/50">
+                                    {order.raw.type}
                                   </span>
-                                  <span className="inline-flex items-center text-[10px] font-semibold text-slate-500 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200/50">
-                                    {order.raw.type || '미지정'}
+                                </td>
+                                <td className="px-6 py-5 text-center">
+                                  <span className="text-sm text-slate-600 font-medium">
+                                    {order.raw.type === '원형'
+                                      ? `Ø${order.raw.diameter}`
+                                      : `${order.raw.width}*${order.raw.height}`}
                                   </span>
-                                </div>
-                              ) : (
-                                <span className="text-xs text-slate-300">-</span>
-                              )}
-                            </td>
+                                </td>
+                                <td className="px-6 py-5 text-center">
+                                  <span className="text-sm text-slate-600 font-medium">{order.raw.thickness}</span>
+                                </td>
+                                <td className="px-6 py-5 text-center">
+                                  <span className="text-sm text-slate-600 font-medium">{order.raw.color}</span>
+                                </td>
+                              </>
+                            )}
                             <td className="px-6 py-5 text-center">
                               <span className="text-sm font-bold text-slate-900">{order.raw.quantity}EA</span>
                             </td>
@@ -835,9 +864,9 @@ export default function Quote() {
                               <span className="text-xs font-bold text-slate-400">{order.date}</span>
                             </td>
                             <td className="px-6 py-5 text-right">
-                              <button 
+                              <button
                                 onClick={() => handleEdit(order)}
-                                className="p-2 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-all"
+                                className="p-2 text-slate-400 hover:text-pink-500 hover:bg-pink-50 rounded-lg transition-all"
                                 title="주문 수정"
                               >
                                 <Edit2 className="w-4 h-4" />
@@ -1043,26 +1072,36 @@ export default function Quote() {
                           company_name: user?.company || '정보 없음',
                           business_number: user?.businessNumber || '',
                           orderer_name: user?.name || '',
-                          status: '주문 요청'
+                          ...(editingOrderId ? {} : { status: '주문 요청' })
                         };
 
-
                         console.log('전송 시도 데이터 (클린싱):', cleansingData);
-                        const { error: insertError } = await supabase
-                          .from('order_cleansing_shine')
-                          .insert([cleansingData]);
-                        
-                        if (insertError) {
-                          console.error('클린싱 주문 DB 입력 에러 상세:', insertError);
-                          alert('주문 처리 중 오류가 발생했습니다: ' + (insertError.message || '알 수 없는 에러'));
+                        let cleansingError;
+                        if (editingOrderId) {
+                          const { error: updateError } = await supabase
+                            .from('order_cleansing_shine')
+                            .update(cleansingData)
+                            .eq('id', editingOrderId);
+                          cleansingError = updateError;
+                        } else {
+                          const { error: insertError } = await supabase
+                            .from('order_cleansing_shine')
+                            .insert([cleansingData]);
+                          cleansingError = insertError;
+                        }
+
+                        if (cleansingError) {
+                          console.error('클린싱 주문 DB 입력 에러 상세:', cleansingError);
+                          alert('주문 처리 중 오류가 발생했습니다: ' + (cleansingError.message || '알 수 없는 에러'));
                           return;
                         }
-                        
+
                         if (user?.businessNumber) {
                           fetchPastOrders(user.businessNumber);
                         }
 
-                        alert('주문이 성공적으로 접수되었습니다. 담당 매니저가 곧 연락드리겠습니다.');
+                        alert(editingOrderId ? '주문이 성공적으로 수정되었습니다.' : '주문이 성공적으로 접수되었습니다. 담당 매니저가 곧 연락드리겠습니다.');
+                        setEditingOrderId(null);
                         setIsModalOpen(false);
                       }
                     }}
