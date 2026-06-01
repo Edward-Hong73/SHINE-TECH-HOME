@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getMessaging, getToken, onMessage } from 'firebase/messaging';
+import { getMessaging, getToken, deleteToken, onMessage } from 'firebase/messaging';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -25,7 +25,8 @@ export const requestFcmToken = async () => {
   try {
     const permission = await Notification.requestPermission();
     if (permission === 'granted') {
-      // VAPID 키 적용
+      // 캐시된 기존 토큰 삭제 후 새 토큰 발급
+      try { await deleteToken(messaging); } catch (_) {}
       const token = await getToken(messaging, {
         vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY
       });
