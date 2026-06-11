@@ -17,21 +17,7 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-messaging.onBackgroundMessage((payload) => {
-  console.log('[firebase-messaging-sw.js] 배경 메시지 수신:', payload);
-
-  // data 필드에서만 꺼내 표시 (자동 표시 방지)
-  const title = payload.data?.title || '샤인테크 알림';
-  const body = payload.data?.body || '';
-  const link = payload.data?.link || 'https://shine-tech-homepage.vercel.app/admin';
-
-  self.registration.showNotification(title, {
-    body: body,
-    icon: '/logo192.png',
-    badge: '/logo192.png',
-    data: { url: link },
-  });
-});
+// Firebase가 notification 필드로 자동 표시 (onBackgroundMessage 미정의 시 1개만 표시됨)
 
 // 알림 클릭 시 해당 링크로 이동
 self.addEventListener('notificationclick', (event) => {
