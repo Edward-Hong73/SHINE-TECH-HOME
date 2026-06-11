@@ -1,14 +1,14 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { 
+import {
   LogOut,
-  History, 
-  Package, 
-  Droplets, 
-  ShoppingCart, 
-  ClipboardCheck, 
-  RefreshCw, 
+  History,
+  Package,
+  Droplets,
+  ShoppingCart,
+  ClipboardCheck,
+  RefreshCw,
   Search,
   Bell,
   User,
@@ -19,7 +19,8 @@ import {
   Zap,
   Edit2,
   X,
-  Trash2
+  Trash2,
+  Lock
 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -334,6 +335,45 @@ export default function Quote() {
 
     setPastOrders(allOrders);
   };
+
+  // 비로그인 상태 팝업
+  if (!isLoading && !isLoggedIn) {
+    return (
+      <div className="min-h-screen bg-slate-50 pt-24 pb-12 flex items-center justify-center px-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          className="w-full max-w-md bg-white rounded-[32px] shadow-2xl border border-slate-100 overflow-hidden"
+        >
+          <div className="p-10 flex flex-col items-center text-center space-y-6">
+            <div className="w-20 h-20 bg-brand-50 rounded-3xl flex items-center justify-center">
+              <Lock className="w-10 h-10 text-brand-600" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-2xl font-black text-slate-900 tracking-tight">로그인이 필요합니다</h2>
+              <p className="text-sm text-slate-500 leading-relaxed">
+                주문 및 견적 서비스는 파트너사 회원만<br />이용하실 수 있습니다.<br />로그인 후 이용해 주세요.
+              </p>
+            </div>
+            <div className="w-full space-y-3 pt-2">
+              <button
+                onClick={() => navigate('/login')}
+                className="w-full py-4 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-2xl transition-all shadow-lg shadow-brand-500/20 text-sm"
+              >
+                로그인하기
+              </button>
+              <button
+                onClick={() => navigate('/')}
+                className="w-full py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-2xl transition-all text-sm"
+              >
+                홈으로 돌아가기
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 pt-24 pb-12">
