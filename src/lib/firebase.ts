@@ -58,13 +58,7 @@ export const requestFcmToken = async () => {
       console.error('FCM: 서비스 워커 등록 실패', swErr);
     }
 
-    // 기존 캐시 토큰 삭제
-    try {
-      await deleteToken(messaging);
-      console.log('FCM: 기존 토큰 삭제 완료');
-    } catch (_) {}
-
-    // 새 토큰 발급
+    // 기존 토큰 그대로 사용 (없을 때만 새로 발급)
     const token = await getToken(messaging, {
       vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,
       serviceWorkerRegistration: swRegistration,

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { requestFcmToken, messaging } from '../lib/firebase';
-import { onMessage, deleteToken } from 'firebase/messaging';
+import { onMessage } from 'firebase/messaging';
 
 interface AuthContextType {
   isLoggedIn: boolean;
@@ -116,22 +116,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      // FCM 토큰 DB 삭제 및 Firebase 캐시 초기화
-      if (messaging) {
-        try {
-          await deleteToken(messaging);
-          console.log('FCM: 로그아웃 시 토큰 캐시 삭제 완료');
-        } catch (_) {}
-        try {
-          // DB에서 해당 유저의 토큰 전체 삭제
-          const userId = user?.id || user?.user_id;
-          if (userId) {
-            await supabase.from('fcm_tokens').delete().eq('user_id', userId);
-            console.log('FCM: DB 토큰 삭제 완료');
-          }
-        } catch (_) {}
-      }
-
       await supabase.auth.signOut();
       setIsLoggedIn(false);
       setUser(null);
