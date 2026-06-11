@@ -1,5 +1,10 @@
+// v2
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
+
+// 새 서비스 워커 즉시 활성화 (캐시 강제 갱신)
+self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('activate', (event) => event.waitUntil(clients.claim()));
 
 firebase.initializeApp({
   apiKey: "AIzaSyCZTj7QKK07GlbxOcbRmllVR8ToG8RSms8",
