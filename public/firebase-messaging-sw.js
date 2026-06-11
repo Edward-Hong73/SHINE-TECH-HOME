@@ -20,9 +20,10 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] 배경 메시지 수신:', payload);
 
-  const title = payload.notification?.title || '샤인테크 알림';
-  const body = payload.notification?.body || '';
-  const link = payload.fcmOptions?.link || payload.data?.link || 'https://shine-tech-homepage.vercel.app/admin';
+  // data 필드에서만 꺼내 표시 (자동 표시 방지)
+  const title = payload.data?.title || '샤인테크 알림';
+  const body = payload.data?.body || '';
+  const link = payload.data?.link || 'https://shine-tech-homepage.vercel.app/admin';
 
   self.registration.showNotification(title, {
     body: body,
