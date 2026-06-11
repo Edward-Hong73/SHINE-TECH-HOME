@@ -96,6 +96,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     registerToken();
 
+    // messaging null 체크 후 foreground 메시지 수신
+    if (!messaging) return;
     const unsubscribe = onMessage(messaging, (payload) => {
       setTimeout(() => {
         alert(`🔔 [실시간 주문 알림]\n\n제목: ${payload.notification?.title}\n내용: ${payload.notification?.body}`);
@@ -117,12 +119,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // FCM 토큰 DB 삭제 및 Firebase 캐시 초기화
       if (messaging) {
         try {
-          const currentToken = await import('firebase/messaging').then(m =>
-            m.getToken(messaging, { vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY })
-          );
-          if (currentToken) {
-            await supabase.from('fcm_tokens').delete().eq('token', currentToken);
-            await deleteToken(messaging);
+          await deleteToken(messaging);
+          console.log('FCM: 로그아웃 시 토큰 캐시 삭제 완료');
+        } catch (_) {}
+        try {
+          // DB에서 해당 유저의 토큰 전체 삭제
+          const userId = user?.id || user?.user_id;
+          if (userId) {
+            await supabase.from('fcm_tokens').delete().eq('user_id', userId);
+            console.log('FCM: DB 토큰 삭제 완료');
           }
         } catch (_) {}
       }
