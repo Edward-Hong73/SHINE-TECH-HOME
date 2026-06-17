@@ -118,22 +118,13 @@ serve(async (req) => {
             body: JSON.stringify({
               message: {
                 token: token,
-                notification: {
+                data: {
                   title: orderTitle,
                   body: orderBody,
+                  link: 'https://shine-tech-homepage.vercel.app/admin',
                 },
                 webpush: {
-                  fcm_options: {
-                    link: 'https://shine-tech-homepage.vercel.app/admin'
-                  }
-                },
-                android: {
-                  priority: 'high',
-                  notification: {
-                    title: orderTitle,
-                    body: orderBody,
-                    sound: 'default',
-                  }
+                  headers: { Urgency: 'high' },
                 }
               },
             }),
