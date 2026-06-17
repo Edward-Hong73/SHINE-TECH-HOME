@@ -80,14 +80,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const token = await requestFcmToken();
         if (!token || cancelled) return;
 
-        // 기존 토큰 전체 삭제 후 현재 토큰만 저장 (누적 방지)
-        await supabase.from('fcm_tokens').delete().eq('user_id', currentUserId);
-        await supabase.from('fcm_tokens').insert({
-          user_id: currentUserId,
-          token: token,
-          device_type: /Mobi|Android/i.test(navigator.userAgent) ? 'mobile' : 'desktop'
-        });
-        console.log('FCM: 토큰 저장 완료');
+        const deviceType = /Mobi|Android/i.test(navigator.userAgent) ? 'mobile' : 'desktop';
+
+        // 이미 동일 토큰이 있으면 중복 삽입 방지
+        const { data: existing } = await supabase
+          .from('fcm_tokens')
+          .select('id')
+          .eq('user_id', currentUserId)
+          .eq('token', token)
+          .maybeSingle();
+
+        if (!existing) {
+          // 이 user의 같은 device_type 토큰 모두 삭제 후 새 토큰 삽입
+          await supabase.from('fcm_tokens').delete()
+            .eq('user_id', currentUserId)
+            .eq('device_type', deviceType);
+          if (!cancelled) {
+            await supabase.from('fcm_tokens').insert({
+              user_id: currentUserId,
+              token: token,
+              device_type: deviceType,
+            });
+            console.log('FCM: 토큰 저장 완료');
+          }
+        }
       } catch (e) {
         console.error('FCM 프로세스 에러:', e);
       }
