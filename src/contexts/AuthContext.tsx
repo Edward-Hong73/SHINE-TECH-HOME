@@ -98,8 +98,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!messaging) return;
     const unsubscribe = onMessage(messaging, (payload) => {
       setTimeout(() => {
-        const title = payload.notification?.title || '샤인테크 알림';
-        const body = payload.notification?.body || '';
+        const title = payload.data?.title || payload.notification?.title || '샤인테크 알림';
+        const body = payload.data?.body || payload.notification?.body || '';
         alert(`🔔 [실시간 주문 알림]\n\n제목: ${title}\n내용: ${body}`);
       }, 100);
     });
