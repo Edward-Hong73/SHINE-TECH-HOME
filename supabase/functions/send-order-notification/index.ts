@@ -120,12 +120,9 @@ serve(async (req) => {
                 token: token,
                 webpush: {
                   headers: { Urgency: 'high' },
-                  notification: {
+                  data: {
                     title: orderTitle,
                     body: orderBody,
-                    icon: '/logo192.png',
-                  },
-                  fcm_options: {
                     link: 'https://shine-tech-homepage.vercel.app/admin',
                   },
                 },
