@@ -18,8 +18,8 @@ const messaging = firebase.messaging();
 
 // data-only 메시지 수신 → 직접 알림 표시 (Chrome 이중 표시 방지)
 messaging.onBackgroundMessage((payload) => {
-  const title = payload.data?.title || '샤인테크 알림';
-  const body = payload.data?.body || '';
+  const title = payload.data?.title || payload.notification?.title || '샤인테크 알림';
+  const body = payload.data?.body || payload.notification?.body || '';
   const link = payload.data?.link || 'https://shine-tech-homepage.vercel.app/admin';
 
   self.registration.showNotification(title, {
