@@ -57,11 +57,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     initAuth();
   }, []);
 
-  // FCM 로직 (이전과 동일)
+  // FCM 로직
   useEffect(() => {
-    const registerToken = async () => {
-      if (!isLoggedIn || !user?.email) return;
+    if (!isLoggedIn || !user?.email) return;
 
+    let cancelled = false;
+
+    const registerToken = async () => {
       let currentUserId = user?.id || user?.user_id;
 
       if (!currentUserId) {
@@ -70,25 +72,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .select('id')
           .eq('email', user.email)
           .single();
-        
-        if (data) {
-          currentUserId = data.id;
-        } else {
-          return;
-        }
+        if (data) currentUserId = data.id;
+        else return;
       }
 
       try {
         const token = await requestFcmToken();
-        if (!token) return;
-        
-        await supabase
-          .from('fcm_tokens')
-          .upsert({ 
-            user_id: currentUserId, 
-            token: token,
-            device_type: /Mobi|Android/i.test(navigator.userAgent) ? 'mobile' : 'desktop'
-          }, { onConflict: 'token' });
+        if (!token || cancelled) return;
+
+        // 기존 토큰 전체 삭제 후 현재 토큰만 저장 (누적 방지)
+        await supabase.from('fcm_tokens').delete().eq('user_id', currentUserId);
+        await supabase.from('fcm_tokens').insert({
+          user_id: currentUserId,
+          token: token,
+          device_type: /Mobi|Android/i.test(navigator.userAgent) ? 'mobile' : 'desktop'
+        });
+        console.log('FCM: 토큰 저장 완료');
       } catch (e) {
         console.error('FCM 프로세스 에러:', e);
       }
@@ -96,16 +95,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     registerToken();
 
-    // messaging null 체크 후 foreground 메시지 수신
     if (!messaging) return;
     const unsubscribe = onMessage(messaging, (payload) => {
       setTimeout(() => {
-        alert(`🔔 [실시간 주문 알림]\n\n제목: ${payload.notification?.title}\n내용: ${payload.notification?.body}`);
+        const title = payload.data?.title || payload.notification?.title || '샤인테크 알림';
+        const body = payload.data?.body || payload.notification?.body || '';
+        alert(`🔔 [실시간 주문 알림]\n\n제목: ${title}\n내용: ${body}`);
       }, 100);
     });
 
-    return () => unsubscribe();
-  }, [isLoggedIn, user?.email, user?.id]);
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, [isLoggedIn, user?.email]);
 
   const login = (userData: any) => {
     setIsLoggedIn(true);
