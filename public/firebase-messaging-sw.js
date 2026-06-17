@@ -1,4 +1,4 @@
-// v3 - data-only: Chrome 자동표시 방지, onBackgroundMessage에서만 1개 표시
+// v5 - debug: payload 내용을 알림 본문에 표시
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
 
@@ -16,17 +16,12 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// data-only 메시지 수신 → 직접 알림 표시 (Chrome 이중 표시 방지)
 messaging.onBackgroundMessage((payload) => {
-  const title = payload.data?.title || payload.notification?.title || '샤인테크 알림';
-  const body = payload.data?.body || payload.notification?.body || '';
-  const link = payload.data?.link || 'https://shine-tech-homepage.vercel.app/admin';
-
-  self.registration.showNotification(title, {
-    body: body,
+  // payload 전체를 알림에 표시 (원인 파악용)
+  const debugBody = JSON.stringify(payload);
+  self.registration.showNotification('[DEBUG] payload 확인', {
+    body: debugBody,
     icon: '/logo192.png',
-    badge: '/logo192.png',
-    data: { url: link },
   });
 });
 
