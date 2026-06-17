@@ -1,33 +1,29 @@
-// v7 - data-only: Android OS 자동 표시 차단, onBackgroundMessage에서만 1개 표시
-importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
+// v8 - Firebase SDK 없이 raw push 이벤트 직접 처리
+// FCM 토큰 발급은 앱(firebase.ts)에서 처리, SW는 수신만 담당
 
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (event) => event.waitUntil(clients.claim()));
 
-firebase.initializeApp({
-  apiKey: "AIzaSyCZTj7QKK07GlbxOcbRmllVR8ToG8RSms8",
-  authDomain: "shinetech-88274.firebaseapp.com",
-  projectId: "shinetech-88274",
-  storageBucket: "shinetech-88274.appspot.com",
-  messagingSenderId: "358070557084",
-  appId: "1:358070557084:web:3bc107cc9a9dda0cf3d059"
-});
+self.addEventListener('push', (event) => {
+  let payload = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch (e) {
+    console.error('[SW] push 파싱 실패:', e);
+  }
 
-const messaging = firebase.messaging();
-
-// data-only 수신 → onBackgroundMessage에서만 showNotification (이중 표시 없음)
-messaging.onBackgroundMessage((payload) => {
-  const title = payload.data?.title || '샤인테크 알림';
-  const body = payload.data?.body || '';
+  const title = payload.data?.title || payload.notification?.title || '샤인테크 알림';
+  const body = payload.data?.body || payload.notification?.body || '';
   const link = payload.data?.link || 'https://shine-tech-homepage.vercel.app/admin';
 
-  self.registration.showNotification(title, {
-    body: body,
-    icon: '/logo192.png',
-    badge: '/logo192.png',
-    data: { url: link },
-  });
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body: body,
+      icon: '/logo192.png',
+      badge: '/logo192.png',
+      data: { url: link },
+    })
+  );
 });
 
 self.addEventListener('notificationclick', (event) => {
