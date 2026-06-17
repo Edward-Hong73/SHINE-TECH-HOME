@@ -1,4 +1,4 @@
-// v5 - debug: payload 내용을 알림 본문에 표시
+// v6 - webpush.notification 자동 표시 (Android OS 이중 표시 방지)
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
 
@@ -16,14 +16,9 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-messaging.onBackgroundMessage((payload) => {
-  // payload 전체를 알림에 표시 (원인 파악용)
-  const debugBody = JSON.stringify(payload);
-  self.registration.showNotification('[DEBUG] payload 확인', {
-    body: debugBody,
-    icon: '/logo192.png',
-  });
-});
+// webpush.notification 필드는 Chrome이 자동으로 1번만 표시
+// onBackgroundMessage 미정의 → Firebase SDK가 webpush.notification으로 표시
+// fcm_options.link가 클릭 이동 처리
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
