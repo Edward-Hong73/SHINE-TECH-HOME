@@ -177,9 +177,9 @@ export default function Quote() {
           color: raw.color || '핑크',
           customColor: raw.custom_color || '',
           quantity: raw.quantity?.toString() || '500',
-          diameter: raw.diameter?.toString() || '83',
-          width: raw.width?.toString() || '110',
-          height: raw.height?.toString() || '90',
+          diameter: raw.diameter?.toString() || '',
+          width: raw.width?.toString() || '',
+          height: raw.height?.toString() || '',
           thickness: raw.thickness?.toString() || '10'
         });
       }
@@ -220,9 +220,9 @@ export default function Quote() {
           color: raw.color || '핑크',
           customColor: raw.custom_color || '',
           quantity: raw.quantity?.toString() || '500',
-          diameter: raw.diameter?.toString() || '83',
-          width: raw.width?.toString() || '110',
-          height: raw.height?.toString() || '90',
+          diameter: raw.diameter?.toString() || '',
+          width: raw.width?.toString() || '',
+          height: raw.height?.toString() || '',
           thickness: raw.thickness?.toString() || '10'
         });
       }
@@ -1103,9 +1103,9 @@ export default function Quote() {
                       } else {
                         const cleansingData = {
                           type: cosmeticSettings.type,
-                          diameter: cosmeticSettings.diameter,
-                          width: cosmeticSettings.width,
-                          height: cosmeticSettings.height,
+                          diameter: cosmeticSettings.type === '원형' ? cosmeticSettings.diameter : null,
+                          width: cosmeticSettings.type !== '원형' ? cosmeticSettings.width : null,
+                          height: cosmeticSettings.type !== '원형' ? cosmeticSettings.height : null,
                           thickness: cosmeticSettings.thickness,
                           color: cosmeticSettings.color === '직접 입력' ? cosmeticSettings.customColor : cosmeticSettings.color,
                           quantity: cosmeticSettings.quantity,
