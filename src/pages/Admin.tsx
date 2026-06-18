@@ -23,6 +23,46 @@ import { useNavigate } from 'react-router-dom';
 
 const STATUS_STEPS = ['주문 요청', '주문접수', '생산', '후처리', '출하 대기', '출하 완료'];
 
+// 주문 데이터에서 선택 가능한 필드 목록
+const ORDER_FIELDS = [
+  { value: '', label: '(빈값)' },
+  { value: '__year__', label: '거래연도 (자동)' },
+  { value: '__month__', label: '거래월 (자동)' },
+  { value: '__date__', label: '주문접수일자 (자동)' },
+  { value: 'company_name', label: '주문처 (업체명)' },
+  { value: 'type', label: '종류' },
+  { value: 'outer_diameter', label: '외경 [롤러]' },
+  { value: 'inner_diameter', label: '내경 [롤러]' },
+  { value: 'sponge_length', label: '스폰지길이 [롤러]' },
+  { value: 'total_length', label: '전체길이 [롤러]' },
+  { value: 'hole_processing', label: '단자가공 [롤러]' },
+  { value: 'cutting_type', label: '컷팅 [롤러]' },
+  { value: 'diameter', label: '직경 [클린싱 원형]' },
+  { value: '__cleansing_size__', label: '규격 (width*height 또는 Ø직경) [클린싱]' },
+  { value: 'thickness', label: '두께 [클린싱]' },
+  { value: 'color', label: '색상' },
+  { value: 'quantity', label: '주문수량' },
+  { value: 'notes', label: '비고' },
+  { value: 'business_number', label: '사업자번호' },
+  { value: 'orderer_name', label: '주문자명' },
+  { value: '__fixed_사인__', label: '고정값: 사인' },
+];
+
+function getFieldValue(order: any, fieldKey: string): any {
+  const now = new Date();
+  if (fieldKey === '__year__') return now.getFullYear();
+  if (fieldKey === '__month__') return now.getMonth() + 1;
+  if (fieldKey === '__date__') {
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  }
+  if (fieldKey === '__fixed_사인__') return '사인';
+  if (fieldKey === '__cleansing_size__') {
+    return order.type === '원형' ? `Ø${order.diameter}` : `${order.width}*${order.height}`;
+  }
+  if (fieldKey === '') return '';
+  return order[fieldKey] ?? '';
+}
+
 export default function Admin() {
   const { user, isLoggedIn, isLoading, logout } = useAuth();
   const navigate = useNavigate();
@@ -33,6 +73,10 @@ export default function Admin() {
   const [filterCategory, setFilterCategory] = useState<'all' | '롤러' | '클린싱'>('all');
   const [hideCompleted, setHideCompleted] = useState(false);
   const fileHandleRef = useRef<FileSystemFileHandle | null>(null);
+  const [excelSheetName, setExcelSheetName] = useState<string>('');
+  const [excelHeaders, setExcelHeaders] = useState<string[]>([]);
+  const [columnMapping, setColumnMapping] = useState<string[]>([]);
+  const [isMappingOpen, setIsMappingOpen] = useState(false);
 
   useEffect(() => {
     if (isLoading) return;
@@ -70,10 +114,36 @@ export default function Admin() {
   const selectExcelFile = async () => {
     try {
       const [handle] = await (window as any).showOpenFilePicker({
-        types: [{ description: 'Excel 파일', accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] } }],
+        types: [{
+          description: 'Excel 파일',
+          accept: {
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+            'application/vnd.ms-excel': ['.xls'],
+          },
+        }],
       });
       fileHandleRef.current = handle;
-      alert(`엑셀 파일 연결 완료: ${handle.name}`);
+
+      // 파일 읽어서 "주문" 시트 헤더 추출
+      const file = await handle.getFile();
+      const arrayBuffer = await file.arrayBuffer();
+      const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+      const sheetName = workbook.SheetNames.find((n: string) => n === '주문') ?? workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const rows: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+      // 헤더 행 찾기: 값이 가장 많은 행을 헤더로 사용 (보통 2번째 행)
+      let headerRow: any[] = [];
+      for (const row of rows) {
+        if (row.filter(Boolean).length > headerRow.filter(Boolean).length) headerRow = row;
+      }
+      const headers = headerRow.map((h: any) => String(h ?? ''));
+
+      setExcelSheetName(sheetName);
+      setExcelHeaders(headers);
+      // 초기 매핑은 빈값으로
+      setColumnMapping(new Array(headers.length).fill(''));
+      setIsMappingOpen(true);
     } catch (e) {
       // 사용자가 취소한 경우 무시
     }
@@ -81,73 +151,32 @@ export default function Admin() {
 
   const appendToExcel = async (order: any) => {
     try {
-      // 파일 미선택 시 자동으로 파일 선택 요청
       if (!fileHandleRef.current) {
-        const [handle] = await (window as any).showOpenFilePicker({
-          types: [{ description: 'Excel 파일', accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] } }],
-        });
-        fileHandleRef.current = handle;
+        await selectExcelFile();
+        if (!fileHandleRef.current) return; // 취소한 경우
+      }
+      if (columnMapping.length === 0) {
+        alert('먼저 엑셀 파일을 연결하고 컬럼 매핑을 완료해 주세요.');
+        return;
       }
 
       const handle = fileHandleRef.current!;
-
-      // 기존 파일 읽기
       const file = await handle.getFile();
       const arrayBuffer = await file.arrayBuffer();
       const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-      const sheetName = workbook.SheetNames[0];
+
+      // "주문" 시트 우선, 없으면 첫 번째 시트
+      const sheetName = workbook.SheetNames.find(n => n === '주문') ?? workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
-      const existingData: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-      // 헤더가 없으면 추가
-      if (existingData.length === 0) {
-        if (order.product_category === '롤러') {
-          existingData.push(['접수일시', '주문ID', '업체명', '사업자번호', '주문자', '외경', '내경', '스폰지길이', '전체길이', '수량', '홀가공', '컷팅', '타입', '비고']);
-        } else {
-          existingData.push(['접수일시', '주문ID', '업체명', '사업자번호', '주문자', '형태', '규격(mm)', '두께', '색상', '수량', '비고']);
-        }
-      }
+      // 매핑 설정에 따라 새 행 구성
+      const newRow = columnMapping.map(fieldKey => getFieldValue(order, fieldKey));
 
-      // 새 행 추가
-      const now = new Date().toLocaleString('ko-KR');
-      if (order.product_category === '롤러') {
-        existingData.push([
-          now,
-          `#ORD-${order.id}`,
-          order.company_name || '',
-          order.business_number || '',
-          order.orderer_name || '',
-          order.outer_diameter || '',
-          order.inner_diameter || '',
-          order.sponge_length || '',
-          order.total_length || '',
-          order.quantity || '',
-          order.hole_processing || '',
-          order.cutting || '',
-          order.type || '',
-          order.notes || '',
-        ]);
-      } else {
-        existingData.push([
-          now,
-          `#ORD-${order.id}`,
-          order.company_name || '',
-          order.business_number || '',
-          order.orderer_name || '',
-          order.type || '',
-          order.size || '',
-          order.thickness || '',
-          order.color || '',
-          order.quantity || '',
-          order.notes || '',
-        ]);
-      }
+      // 기존 서식·데이터 유지하며 마지막 행 뒤에 추가
+      XLSX.utils.sheet_add_aoa(worksheet, [newRow], { origin: -1 });
 
-      // 파일 저장
-      const newWorksheet = XLSX.utils.aoa_to_sheet(existingData);
-      const newWorkbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, sheetName);
-      const wbout = XLSX.write(newWorkbook, { bookType: 'xlsx', type: 'array' });
+      const isXls = handle.name.toLowerCase().endsWith('.xls');
+      const wbout = XLSX.write(workbook, { bookType: isXls ? 'biff8' : 'xlsx', type: 'array' });
 
       const writable = await handle.createWritable();
       await writable.write(wbout);
@@ -156,6 +185,7 @@ export default function Admin() {
     } catch (e: any) {
       if (e?.name !== 'AbortError') {
         console.error('엑셀 저장 오류:', e);
+        alert('엑셀 저장 중 오류가 발생했습니다.');
       }
     }
   };
@@ -205,6 +235,80 @@ export default function Admin() {
   };
 
   return (
+    <>
+    {/* 컬럼 매핑 모달 */}
+    <AnimatePresence>
+      {isMappingOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/50 z-[200] flex items-center justify-center p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setIsMappingOpen(false); }}
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden"
+          >
+            <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+              <div>
+                <h2 className="text-base font-black text-slate-900">엑셀 컬럼 매핑 설정</h2>
+                <p className="text-xs text-slate-400 mt-0.5">시트: <span className="font-bold text-slate-600">{excelSheetName}</span> · 파일: <span className="font-bold text-slate-600">{fileHandleRef.current?.name}</span></p>
+              </div>
+              <button onClick={() => setIsMappingOpen(false)} className="text-slate-400 hover:text-slate-600 text-xl font-bold px-2">✕</button>
+            </div>
+
+            <div className="overflow-y-auto flex-1 p-6">
+              <p className="text-xs text-slate-500 mb-4">각 엑셀 컬럼에 어떤 주문 데이터를 저장할지 선택하세요.</p>
+              <div className="space-y-2">
+                {excelHeaders.map((header, idx) => (
+                  <div key={idx} className="flex items-center gap-3">
+                    <div className="w-8 text-center text-[10px] font-bold text-slate-400 bg-slate-100 rounded px-1 py-1 shrink-0">
+                      {String.fromCharCode(65 + idx)}
+                    </div>
+                    <div className="w-32 shrink-0">
+                      <span className="text-xs font-bold text-slate-700 truncate block">{header || '(빈 헤더)'}</span>
+                    </div>
+                    <div className="text-slate-300 shrink-0">→</div>
+                    <select
+                      value={columnMapping[idx] ?? ''}
+                      onChange={(e) => {
+                        const updated = [...columnMapping];
+                        updated[idx] = e.target.value;
+                        setColumnMapping(updated);
+                      }}
+                      className="flex-1 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium focus:ring-2 focus:ring-brand-500/20 outline-none"
+                    >
+                      {ORDER_FIELDS.map(f => (
+                        <option key={f.value} value={f.value}>{f.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3">
+              <button
+                onClick={() => setIsMappingOpen(false)}
+                className="px-5 py-2 text-xs font-bold text-slate-500 hover:text-slate-700 transition-colors"
+              >
+                취소
+              </button>
+              <button
+                onClick={() => setIsMappingOpen(false)}
+                className="px-6 py-2 bg-brand-600 text-white text-xs font-bold rounded-xl hover:bg-brand-700 transition-colors"
+              >
+                저장
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+
     <div className="min-h-screen bg-slate-50 pt-24 pb-12">
       <div className="max-w-7xl mx-auto px-4">
         {/* Header Section */}
@@ -258,18 +362,27 @@ export default function Admin() {
                 className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-brand-500/20 outline-none shadow-sm"
               />
             </div>
-            <button
-              onClick={selectExcelFile}
-              className={cn(
-                "px-3 py-3 border rounded-2xl text-xs font-bold transition-colors shadow-sm",
-                fileHandleRef.current
-                  ? "bg-emerald-50 border-emerald-300 text-emerald-700"
-                  : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50"
-              )}
-              title={fileHandleRef.current ? `연결됨: ${fileHandleRef.current.name}` : "엑셀 파일 연결"}
-            >
-              {fileHandleRef.current ? '📊 엑셀 연결됨' : '📊 엑셀 연결'}
-            </button>
+            {fileHandleRef.current ? (
+              <div className="flex items-center gap-1">
+                <span className="px-3 py-3 bg-emerald-50 border border-emerald-300 text-emerald-700 rounded-2xl text-xs font-bold shadow-sm" title={`연결됨: ${fileHandleRef.current.name}`}>
+                  📊 {fileHandleRef.current.name}
+                </span>
+                <button
+                  onClick={() => setIsMappingOpen(true)}
+                  className="px-3 py-3 bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 rounded-2xl text-xs font-bold transition-colors shadow-sm"
+                  title="컬럼 매핑 설정"
+                >
+                  ⚙️ 매핑
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={selectExcelFile}
+                className="px-3 py-3 bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 rounded-2xl text-xs font-bold transition-colors shadow-sm"
+              >
+                📊 엑셀 연결
+              </button>
+            )}
             <button
               onClick={fetchOrders}
               className="p-3 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 transition-colors shadow-sm"
@@ -535,6 +648,7 @@ export default function Admin() {
         )}
       </div>
     </div>
+    </>
   );
 }
 

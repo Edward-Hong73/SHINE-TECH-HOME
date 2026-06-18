@@ -117,7 +117,7 @@ export default function Quote() {
         if (!order) return;
 
         const tableName = order.category === '롤러' ? 'order_roller_shine' : 'order_cleansing_shine';
-        return supabase.from(tableName).delete().eq('id', orderId);
+        return supabase.from(tableName).delete().eq('id', order.raw.id);
       });
 
       const results = await Promise.all(deletePromises);
