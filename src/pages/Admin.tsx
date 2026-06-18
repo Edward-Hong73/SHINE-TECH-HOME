@@ -77,6 +77,8 @@ const ORDER_FIELDS = [
   { value: 'orderer_name', label: '주문자명' },
   { value: '__fixed_사인__', label: '고정값: 사인' },
   { value: '__unit_price__', label: '단가 (자동계산) [롤러]' },
+  { value: '__order_db_id__', label: '주문 DB ID (행 식별용)' },
+  { value: '__production_date__', label: '생산완료일 (출하대기 시 자동입력)' },
 ];
 
 function getFieldValue(order: any, fieldKey: string): any {
@@ -94,6 +96,8 @@ function getFieldValue(order: any, fieldKey: string): any {
     if (order.product_category !== '롤러') return '';
     return calcRollerUnitPrice(order) || '';
   }
+  if (fieldKey === '__order_db_id__') return order.id ?? '';
+  if (fieldKey === '__production_date__') return ''; // 출하대기 시 별도 업데이트
   if (fieldKey === '') return '';
   return order[fieldKey] ?? '';
 }
@@ -234,10 +238,10 @@ export default function Admin() {
     } else {
       setOrders(prev => prev.map(o => o.id === orderId && o.product_category === category ? { ...o, status: newStatus } : o));
 
-      // 주문접수로 변경 시 엑셀에 자동 저장
-      if (newStatus === '주문접수') {
-        const order = orders.find(o => o.id === orderId && o.product_category === category);
-        if (order) await appendToExcel({ ...order, status: newStatus });
+      const order = orders.find(o => o.id === orderId && o.product_category === category);
+      if (order) {
+        if (newStatus === '주문접수') await appendToExcel({ ...order, status: newStatus });
+        if (newStatus === '출하 대기') await updateProductionDate(order);
       }
     }
   };
@@ -250,6 +254,47 @@ export default function Admin() {
     const matchesCategory = filterCategory === 'all' || order.product_category === filterCategory;
     const matchesCompleted = hideCompleted ? order.status !== '출하 완료' : true;
     return matchesSearch && matchesCategory && matchesCompleted;
+  };
+
+  const updateProductionDate = async (order: any) => {
+    if (!fileHandleRef.current || columnMapping.length === 0) return;
+
+    const idColIdx = columnMapping.indexOf('__order_db_id__');
+    const prodDateColIdx = columnMapping.indexOf('__production_date__');
+    if (idColIdx === -1 || prodDateColIdx === -1) return; // 매핑 미설정 시 무시
+
+    try {
+      const handle = fileHandleRef.current;
+      const file = await handle.getFile();
+      const arrayBuffer = await file.arrayBuffer();
+      const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+      const sheetName = workbook.SheetNames.find((n: string) => n === '주문') ?? workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const rows: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+      const today = new Date();
+      const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+      let updated = false;
+      for (let i = 0; i < rows.length; i++) {
+        if (String(rows[i][idColIdx]) === String(order.id)) {
+          rows[i][prodDateColIdx] = dateStr;
+          updated = true;
+          break;
+        }
+      }
+
+      if (!updated) return;
+
+      XLSX.utils.sheet_add_aoa(worksheet, rows, { origin: 'A1' });
+      const isXls = handle.name.toLowerCase().endsWith('.xls');
+      const wbout = XLSX.write(workbook, { bookType: isXls ? 'biff8' : 'xlsx', type: 'array' });
+      const writable = await handle.createWritable();
+      await writable.write(wbout);
+      await writable.close();
+    } catch (e: any) {
+      if (e?.name !== 'AbortError') console.error('생산완료일 업데이트 오류:', e);
+    }
   };
 
   const cancelOrder = async (orderId: number, category: string) => {
