@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { cn } from '../lib/utils';
+import * as XLSX from 'xlsx';
 import { 
   ClipboardList, 
   Settings, 
@@ -31,6 +32,7 @@ export default function Admin() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [filterCategory, setFilterCategory] = useState<'all' | '롤러' | '클린싱'>('all');
   const [hideCompleted, setHideCompleted] = useState(false);
+  const fileHandleRef = useRef<FileSystemFileHandle | null>(null);
 
   useEffect(() => {
     if (isLoading) return;
@@ -65,6 +67,99 @@ export default function Admin() {
     setIsOrdersLoading(false);
   };
 
+  const selectExcelFile = async () => {
+    try {
+      const [handle] = await (window as any).showOpenFilePicker({
+        types: [{ description: 'Excel 파일', accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] } }],
+      });
+      fileHandleRef.current = handle;
+      alert(`엑셀 파일 연결 완료: ${handle.name}`);
+    } catch (e) {
+      // 사용자가 취소한 경우 무시
+    }
+  };
+
+  const appendToExcel = async (order: any) => {
+    try {
+      // 파일 미선택 시 자동으로 파일 선택 요청
+      if (!fileHandleRef.current) {
+        const [handle] = await (window as any).showOpenFilePicker({
+          types: [{ description: 'Excel 파일', accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] } }],
+        });
+        fileHandleRef.current = handle;
+      }
+
+      const handle = fileHandleRef.current!;
+
+      // 기존 파일 읽기
+      const file = await handle.getFile();
+      const arrayBuffer = await file.arrayBuffer();
+      const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const existingData: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+      // 헤더가 없으면 추가
+      if (existingData.length === 0) {
+        if (order.product_category === '롤러') {
+          existingData.push(['접수일시', '주문ID', '업체명', '사업자번호', '주문자', '외경', '내경', '스폰지길이', '전체길이', '수량', '홀가공', '컷팅', '타입', '비고']);
+        } else {
+          existingData.push(['접수일시', '주문ID', '업체명', '사업자번호', '주문자', '형태', '규격(mm)', '두께', '색상', '수량', '비고']);
+        }
+      }
+
+      // 새 행 추가
+      const now = new Date().toLocaleString('ko-KR');
+      if (order.product_category === '롤러') {
+        existingData.push([
+          now,
+          `#ORD-${order.id}`,
+          order.company_name || '',
+          order.business_number || '',
+          order.orderer_name || '',
+          order.outer_diameter || '',
+          order.inner_diameter || '',
+          order.sponge_length || '',
+          order.total_length || '',
+          order.quantity || '',
+          order.hole_processing || '',
+          order.cutting || '',
+          order.type || '',
+          order.notes || '',
+        ]);
+      } else {
+        existingData.push([
+          now,
+          `#ORD-${order.id}`,
+          order.company_name || '',
+          order.business_number || '',
+          order.orderer_name || '',
+          order.type || '',
+          order.size || '',
+          order.thickness || '',
+          order.color || '',
+          order.quantity || '',
+          order.notes || '',
+        ]);
+      }
+
+      // 파일 저장
+      const newWorksheet = XLSX.utils.aoa_to_sheet(existingData);
+      const newWorkbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, sheetName);
+      const wbout = XLSX.write(newWorkbook, { bookType: 'xlsx', type: 'array' });
+
+      const writable = await handle.createWritable();
+      await writable.write(wbout);
+      await writable.close();
+
+    } catch (e: any) {
+      if (e?.name !== 'AbortError') {
+        console.error('엑셀 저장 오류:', e);
+      }
+    }
+  };
+
   const updateStatus = async (orderId: number, newStatus: string, category: string) => {
     const tableName = category === '롤러' ? 'order_roller_shine' : 'order_cleansing_shine';
     const { error } = await supabase.from(tableName).update({ status: newStatus }).eq('id', orderId);
@@ -73,6 +168,12 @@ export default function Admin() {
       alert('상태 업데이트 중 오류가 발생했습니다.');
     } else {
       setOrders(prev => prev.map(o => o.id === orderId && o.product_category === category ? { ...o, status: newStatus } : o));
+
+      // 주문접수로 변경 시 엑셀에 자동 저장
+      if (newStatus === '주문접수') {
+        const order = orders.find(o => o.id === orderId && o.product_category === category);
+        if (order) await appendToExcel({ ...order, status: newStatus });
+      }
     }
   };
 
@@ -157,6 +258,18 @@ export default function Admin() {
                 className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-brand-500/20 outline-none shadow-sm"
               />
             </div>
+            <button
+              onClick={selectExcelFile}
+              className={cn(
+                "px-3 py-3 border rounded-2xl text-xs font-bold transition-colors shadow-sm",
+                fileHandleRef.current
+                  ? "bg-emerald-50 border-emerald-300 text-emerald-700"
+                  : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50"
+              )}
+              title={fileHandleRef.current ? `연결됨: ${fileHandleRef.current.name}` : "엑셀 파일 연결"}
+            >
+              {fileHandleRef.current ? '📊 엑셀 연결됨' : '📊 엑셀 연결'}
+            </button>
             <button
               onClick={fetchOrders}
               className="p-3 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 transition-colors shadow-sm"
