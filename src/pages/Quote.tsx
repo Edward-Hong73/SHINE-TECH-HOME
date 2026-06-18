@@ -757,7 +757,7 @@ export default function Quote() {
                   <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center">
                     <History className="text-slate-500 w-5 h-5" />
                   </div>
-                  <h3 className="text-xl font-bold text-slate-800">최근 주문 내역</h3>
+                  <h3 className="text-xl font-bold text-slate-800">과거 주문 내역</h3>
                 </div>
                 <div className="flex items-center space-x-2">
                   <button 
@@ -809,7 +809,7 @@ export default function Quote() {
                           <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center">수량</th>
                           <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center">진행 상태</th>
                           <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">주문 일자</th>
-                          <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">관리</th>
+                          <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">수정</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-50">

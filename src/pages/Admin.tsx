@@ -217,6 +217,17 @@ export default function Admin() {
     return matchesSearch && matchesCategory && matchesCompleted;
   };
 
+  const cancelOrder = async (orderId: number, category: string) => {
+    if (!confirm('이 주문을 취소(삭제)하시겠습니까?')) return;
+    const tableName = category === '롤러' ? 'order_roller_shine' : 'order_cleansing_shine';
+    const { error } = await supabase.from(tableName).delete().eq('id', orderId);
+    if (error) {
+      alert('주문 취소 중 오류가 발생했습니다.');
+    } else {
+      setOrders(prev => prev.filter(o => !(o.id === orderId && o.product_category === category)));
+    }
+  };
+
   const sortOrders = (list: any[]) =>
     list.sort((a, b) => {
       const aCompleted = a.status === '출하 완료' ? 1 : 0;
@@ -496,12 +507,13 @@ export default function Admin() {
                         <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">홀/컷팅/타입</th>
                         <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">수량/포장</th>
                         <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">진행 상태</th>
+                        <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">취소</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
                       {filteredRollerOrders.length === 0 ? (
                         <tr>
-                          <td colSpan={6} className="px-6 py-14 text-center text-slate-400 font-medium text-sm">
+                          <td colSpan={7} className="px-6 py-14 text-center text-slate-400 font-medium text-sm">
                             해당 조건의 롤러 주문이 없습니다.
                           </td>
                         </tr>
@@ -556,6 +568,14 @@ export default function Admin() {
                               ))}
                             </select>
                           </td>
+                          <td className="px-6 py-5 text-right">
+                            <button
+                              onClick={() => cancelOrder(order.id, order.product_category)}
+                              className="px-2.5 py-1.5 bg-red-50 border border-red-200 text-red-500 hover:bg-red-100 rounded-lg text-[10px] font-bold transition-colors"
+                            >
+                              취소
+                            </button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -583,12 +603,13 @@ export default function Admin() {
                         <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">색상</th>
                         <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">수량</th>
                         <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">진행 상태</th>
+                        <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">취소</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
                       {filteredCleansingOrders.length === 0 ? (
                         <tr>
-                          <td colSpan={7} className="px-6 py-14 text-center text-slate-400 font-medium text-sm">
+                          <td colSpan={8} className="px-6 py-14 text-center text-slate-400 font-medium text-sm">
                             해당 조건의 클린싱 주문이 없습니다.
                           </td>
                         </tr>
@@ -636,6 +657,14 @@ export default function Admin() {
                                 <option key={step} value={step}>{step}</option>
                               ))}
                             </select>
+                          </td>
+                          <td className="px-6 py-5 text-right">
+                            <button
+                              onClick={() => cancelOrder(order.id, order.product_category)}
+                              className="px-2.5 py-1.5 bg-red-50 border border-red-200 text-red-500 hover:bg-red-100 rounded-lg text-[10px] font-bold transition-colors"
+                            >
+                              취소
+                            </button>
                           </td>
                         </tr>
                       ))}
