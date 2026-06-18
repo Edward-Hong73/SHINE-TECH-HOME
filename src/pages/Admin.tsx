@@ -23,6 +23,36 @@ import { useNavigate } from 'react-router-dom';
 
 const STATUS_STEPS = ['주문 요청', '주문접수', '생산', '후처리', '출하 대기', '출하 완료'];
 
+// 스펀지 롤러 단가 계산 (가격표 기준)
+function calcRollerUnitPrice(order: any): number {
+  const outer = parseInt(order.outer_diameter) || 0;
+  const inner = parseInt(order.inner_diameter) || 0;
+  const spongeLen = parseInt(order.sponge_length) || 0;
+  const totalLen = parseInt(order.total_length) || 0;
+  const company = (order.company_name || '').trim();
+
+  // 특수 규격 고정 단가 (외경*내경*스폰지길이)
+  let basePrice = 0;
+  if (outer === 100 && inner === 40 && spongeLen === 300) basePrice = 26000;
+  else if (outer === 100 && inner === 20 && spongeLen === 215) basePrice = 31000;
+  else if (outer === 83 && inner === 20 && spongeLen === 215) basePrice = 26000;
+  else {
+    // 기본 가격표: 외경 × 전체길이(PVC 파이프 길이) 기준
+    const isLong = totalLen > 740;
+    const table: Record<number, [number, number]> = {
+      32: [17000, 19000], 35: [17000, 19000],
+      40: [17000, 19000], 45: [17000, 19000],
+      50: [19000, 22000], 55: [22000, 25000],
+      60: [25000, 28000], 65: [31000, 35000],
+    };
+    basePrice = table[outer] ? (isLong ? table[outer][1] : table[outer][0]) : 0;
+  }
+
+  // 후가공비 +3,000원 (스폰지길이 == 전체길이 또는 삼광기업사면 면제)
+  const noSurcharge = spongeLen === totalLen || company.includes('삼광');
+  return basePrice + (noSurcharge ? 0 : 3000);
+}
+
 // 주문 데이터에서 선택 가능한 필드 목록
 const ORDER_FIELDS = [
   { value: '', label: '(빈값)' },
@@ -46,6 +76,7 @@ const ORDER_FIELDS = [
   { value: 'business_number', label: '사업자번호' },
   { value: 'orderer_name', label: '주문자명' },
   { value: '__fixed_사인__', label: '고정값: 사인' },
+  { value: '__unit_price__', label: '단가 (자동계산) [롤러]' },
 ];
 
 function getFieldValue(order: any, fieldKey: string): any {
@@ -58,6 +89,10 @@ function getFieldValue(order: any, fieldKey: string): any {
   if (fieldKey === '__fixed_사인__') return '사인';
   if (fieldKey === '__cleansing_size__') {
     return order.type === '원형' ? `Ø${order.diameter}` : `${order.width}*${order.height}`;
+  }
+  if (fieldKey === '__unit_price__') {
+    if (order.product_category !== '롤러') return '';
+    return calcRollerUnitPrice(order) || '';
   }
   if (fieldKey === '') return '';
   return order[fieldKey] ?? '';
