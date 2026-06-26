@@ -110,12 +110,13 @@ export default function Admin() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [filterCategory, setFilterCategory] = useState<'all' | '롤러' | '클린싱'>('all');
-  const [hideCompleted, setHideCompleted] = useState(false);
+  const [hideCompleted, setHideCompleted] = useState(true);
   const fileHandleRef = useRef<FileSystemFileHandle | null>(null);
   const [excelSheetName, setExcelSheetName] = useState<string>('');
   const [excelHeaders, setExcelHeaders] = useState<string[]>([]);
   const [columnMapping, setColumnMapping] = useState<string[]>([]);
   const [isMappingOpen, setIsMappingOpen] = useState(false);
+  const [changeLogOrder, setChangeLogOrder] = useState<any | null>(null);
 
   useEffect(() => {
     if (isLoading) return;
@@ -297,6 +298,15 @@ export default function Admin() {
     }
   };
 
+  const clearChangeLog = async (orderId: number, category: string) => {
+    const tableName = category === '롤러' ? 'order_roller_shine' : 'order_cleansing_shine';
+    await supabase.from(tableName).update({ change_log: null }).eq('id', orderId);
+    setOrders(prev => prev.map(o =>
+      o.id === orderId && o.product_category === category ? { ...o, change_log: null } : o
+    ));
+    setChangeLogOrder(null);
+  };
+
   const cancelOrder = async (orderId: number, category: string) => {
     if (!confirm('이 주문을 취소(삭제)하시겠습니까?')) return;
     const tableName = category === '롤러' ? 'order_roller_shine' : 'order_cleansing_shine';
@@ -327,6 +337,68 @@ export default function Admin() {
 
   return (
     <>
+    {/* 주문 변경 내역 팝업 */}
+    <AnimatePresence>
+      {changeLogOrder && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/50 z-[300] flex items-center justify-center p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setChangeLogOrder(null); }}
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            className="bg-white rounded-[28px] shadow-2xl border border-slate-100 w-full max-w-md overflow-hidden"
+          >
+            <div className="px-6 py-5 border-b border-slate-100 bg-amber-50/60 flex items-center space-x-3">
+              <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center text-base">✏️</div>
+              <div>
+                <p className="text-xs font-bold text-amber-700 uppercase tracking-wider">주문 변경 알림</p>
+                <p className="text-sm font-black text-slate-900 mt-0.5">{changeLogOrder.company_name}</p>
+              </div>
+            </div>
+            <div className="px-6 py-5">
+              <p className="text-xs text-slate-500 mb-4">
+                {(() => {
+                  const d = new Date(changeLogOrder.change_log.changedAt);
+                  return `${d.getMonth()+1}월 ${d.getDate()}일 ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')} 고객이 아래 항목을 변경했습니다.`;
+                })()}
+              </p>
+              <div className="space-y-2">
+                {changeLogOrder.change_log.changes.map((c: any, i: number) => (
+                  <div key={i} className="flex items-center justify-between bg-slate-50 rounded-xl px-4 py-3 border border-slate-100">
+                    <span className="text-xs font-bold text-slate-500 w-24 shrink-0">{c.label}</span>
+                    <div className="flex items-center gap-2 text-xs font-bold">
+                      <span className="bg-red-50 text-red-500 border border-red-100 px-2 py-0.5 rounded-lg line-through">{String(c.before) === 'true' ? '예' : String(c.before) === 'false' ? '아니오' : c.before || '(없음)'}</span>
+                      <span className="text-slate-300">→</span>
+                      <span className="bg-emerald-50 text-emerald-600 border border-emerald-100 px-2 py-0.5 rounded-lg">{String(c.after) === 'true' ? '예' : String(c.after) === 'false' ? '아니오' : c.after || '(없음)'}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-slate-100 flex gap-3">
+              <button
+                onClick={() => setChangeLogOrder(null)}
+                className="flex-1 py-3 bg-slate-100 text-slate-600 text-xs font-bold rounded-2xl hover:bg-slate-200 transition-colors"
+              >
+                나중에 확인
+              </button>
+              <button
+                onClick={() => clearChangeLog(changeLogOrder.id, changeLogOrder.product_category)}
+                className="flex-1 py-3 bg-amber-500 text-white text-xs font-bold rounded-2xl hover:bg-amber-600 transition-colors shadow-lg shadow-amber-500/20"
+              >
+                확인 완료
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+
     {/* 컬럼 매핑 모달 */}
     <AnimatePresence>
       {isMappingOpen && (
@@ -499,7 +571,7 @@ export default function Admin() {
                   hideCompleted ? "left-4" : "left-0.5"
                 )} />
               </div>
-              <span>출하완료 숨기기</span>
+              <span>{hideCompleted ? '출하완료 보기' : '출하완료 숨기기'}</span>
             </button>
           </div>
 
@@ -613,7 +685,17 @@ export default function Admin() {
                             </span>
                           </td>
                           <td className="px-6 py-5">
-                            <span className="text-sm font-bold text-slate-900">{order.company_name}</span>
+                            <div className="flex flex-col items-start gap-1">
+                              <span className="text-sm font-bold text-slate-900">{order.company_name}</span>
+                              {order.change_log && (
+                                <button
+                                  onClick={() => setChangeLogOrder(order)}
+                                  className="flex items-center gap-1 px-2 py-0.5 bg-amber-50 border border-amber-200 text-amber-600 rounded-lg text-[9px] font-bold hover:bg-amber-100 transition-colors animate-pulse"
+                                >
+                                  ✏️ 변경됨
+                                </button>
+                              )}
+                            </div>
                           </td>
                           <td className="px-6 py-5">
                             <span className="text-[11px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 shadow-sm">
@@ -709,7 +791,17 @@ export default function Admin() {
                             </span>
                           </td>
                           <td className="px-6 py-5">
-                            <span className="text-sm font-bold text-slate-900">{order.company_name}</span>
+                            <div className="flex flex-col items-start gap-1">
+                              <span className="text-sm font-bold text-slate-900">{order.company_name}</span>
+                              {order.change_log && (
+                                <button
+                                  onClick={() => setChangeLogOrder(order)}
+                                  className="flex items-center gap-1 px-2 py-0.5 bg-amber-50 border border-amber-200 text-amber-600 rounded-lg text-[9px] font-bold hover:bg-amber-100 transition-colors animate-pulse"
+                                >
+                                  ✏️ 변경됨
+                                </button>
+                              )}
+                            </div>
                           </td>
                           <td className="px-6 py-5">
                             <span className="inline-flex items-center text-[10px] font-bold text-pink-600 bg-pink-50 px-2 py-0.5 rounded border border-pink-100/50">

@@ -1075,9 +1075,28 @@ export default function Quote() {
                         console.log('전송 시도 데이터 (롤러):', orderData);
                         let error;
                         if (editingOrderId) {
+                          const ROLLER_LABELS: Record<string, string> = {
+                            outer_diameter: '외경 (mm)', inner_diameter: '내경 (mm)',
+                            sponge_length: '스폰지 길이 (mm)', total_length: '전체 길이 (mm)',
+                            hole_processing: '홀가공', cutting_type: '컷팅',
+                            type: '타입', quantity: '수량', individual_packaging: '개별포장'
+                          };
+                          const { data: currentData } = await supabase
+                            .from('order_roller_shine').select('*').eq('id', editingOrderId).single();
+                          const changes: { field: string; label: string; before: string; after: string }[] = [];
+                          if (currentData) {
+                            for (const [field, label] of Object.entries(ROLLER_LABELS)) {
+                              const before = String(currentData[field] ?? '');
+                              const after = String((orderData as any)[field] ?? '');
+                              if (before !== after) changes.push({ field, label, before, after });
+                            }
+                          }
+                          const finalRollerData = changes.length > 0
+                            ? { ...orderData, change_log: { changedAt: new Date().toISOString(), changes } }
+                            : { ...orderData, change_log: null };
                           const { error: updateError } = await supabase
                             .from('order_roller_shine')
-                            .update(orderData)
+                            .update(finalRollerData)
                             .eq('id', editingOrderId);
                           error = updateError;
                         } else {
@@ -1118,9 +1137,26 @@ export default function Quote() {
                         console.log('전송 시도 데이터 (클린싱):', cleansingData);
                         let cleansingError;
                         if (editingOrderId) {
+                          const CLEANSING_LABELS: Record<string, string> = {
+                            type: '형태', diameter: '직경 (mm)', width: '가로 (mm)',
+                            height: '세로 (mm)', thickness: '두께 (mm)', color: '색상', quantity: '수량'
+                          };
+                          const { data: currentCleansingData } = await supabase
+                            .from('order_cleansing_shine').select('*').eq('id', editingOrderId).single();
+                          const cleansingChanges: { field: string; label: string; before: string; after: string }[] = [];
+                          if (currentCleansingData) {
+                            for (const [field, label] of Object.entries(CLEANSING_LABELS)) {
+                              const before = String(currentCleansingData[field] ?? '');
+                              const after = String((cleansingData as any)[field] ?? '');
+                              if (before !== after) cleansingChanges.push({ field, label, before, after });
+                            }
+                          }
+                          const finalCleansingData = cleansingChanges.length > 0
+                            ? { ...cleansingData, change_log: { changedAt: new Date().toISOString(), changes: cleansingChanges } }
+                            : { ...cleansingData, change_log: null };
                           const { error: updateError } = await supabase
                             .from('order_cleansing_shine')
-                            .update(cleansingData)
+                            .update(finalCleansingData)
                             .eq('id', editingOrderId);
                           cleansingError = updateError;
                         } else {
